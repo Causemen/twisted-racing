@@ -9,15 +9,24 @@ export const CONFIG = {
   pickupRespawn: 8,
 
   car: {
-    accel: 46,
-    brake: 60,
-    maxSpeed: 32,
+    accel: 30,
+    brake: 52,
+    maxSpeed: 27, // чуть медленнее, чтобы на телефоне успевать видеть трассу
     reverseMax: 10,
     drag: 0.35,
     coastDrag: 0.9,
-    grip: 9,
-    driftGripLoss: 5,
-    turnRate: 3.5,
+    grip: 8,
+    driftGripLoss: 4,
+    turnRate: 4, // на малой скорости
+    highSpeedSteer: 0.32, // насколько руль мягче на максимальной скорости (доля)
+    steerResponse: 10, // как быстро руль доходит до упора, 1/с (вес машины)
+    // Управляемый дрифт: тормоз + поворот на скорости
+    driftMinSpeed: 13,
+    driftGrip: 2.6, // как быстро траектория догоняет нос в заносе, рад/с
+    driftTurn: 1.5,
+    driftMaxSlip: 0.65, // максимальный угол заноса, рад (~37°)
+    driftBrake: 5, // тормоз в заносе почти не гасит скорость
+    driftNitro: 0.14, // заряд нитро в секунду заноса
     offroadSpeed: 0.62,
     offroadDrag: 1.4,
     radius: 1.3,
@@ -25,8 +34,9 @@ export const CONFIG = {
     nitroMult: 1.45,
     nitroDuration: 1.6,
     nitroRegen: 0.08,
-    wallDamageThreshold: 14,
-    ramDamageThreshold: 12,
+    wallDamageThreshold: 12,
+    ramDamageThreshold: 10,
+    ramPush: 1.8, // сила разлёта при столкновении машин
   },
 
   gun: { aimAssist: 0.22, rate: 9, speed: 80, life: 0.45, damage: 3.5, spread: 0.04, heatPerShot: 0.11, coolRate: 0.4 },

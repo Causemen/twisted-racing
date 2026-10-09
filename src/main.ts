@@ -228,6 +228,8 @@ function respawn(c: Car) {
   c.lastHitBy = null;
   c.heat = 0;
   c.overheated = false;
+  c.drifting = false;
+  c.steerState = 0;
 }
 
 function physics(c: Car, dt: number) {
@@ -325,7 +327,6 @@ function physics(c: Car, dt: number) {
 }
 
 function carCollisions() {
-  const R2 = CONFIG.car.radius * 2;
   for (let i = 0; i < cars.length; i++)
     for (let j = i + 1; j < cars.length; j++) {
       const a = cars[i];
@@ -333,6 +334,8 @@ function carCollisions() {
       if (!a.alive || !b.alive || Math.abs(a.y - b.y) > 1.5) continue;
       const d = b.pos.clone().sub(a.pos).setY(0);
       const dist = d.length();
+      // Радиус столкновения растёт с размером модели: Фура толще Блохи
+      const R2 = CONFIG.car.radius * (a.cls.scale + b.cls.scale) / 1.7;
       if (dist >= R2 || dist < 1e-4) continue;
       const n = d.divideScalar(dist);
       const overlap = R2 - dist;
@@ -342,7 +345,7 @@ function carCollisions() {
       if (rel > 0) {
         // Больше урона получает тот, в кого врезались
         const aHitsB = a.vel.dot(n) > -b.vel.dot(n);
-        const imp = rel * 1.5;
+        const imp = rel * CONFIG.car.ramPush;
         const ma = a.cls.mass;
         const mb = b.cls.mass;
         a.vel.addScaledVector(n, (-imp * mb) / (ma + mb));
