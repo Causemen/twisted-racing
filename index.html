@@ -134,12 +134,29 @@
   .go:active { transform: translateY(2px); box-shadow: 0 2px 0 #6a2a10; }
 
   body:has(#overlay:not([hidden])) #touch { display: none; }
-  #touch { position: fixed; inset: auto 0 0 0; height: 0; }
-  #touch .pad { position: fixed; bottom: max(16px, env(safe-area-inset-bottom)); display: flex; gap: 10px; }
-  #touch .left { left: 16px; } #touch .right { right: 16px; flex-wrap: wrap; width: 190px; justify-content: flex-end; }
-  #touch button { pointer-events: auto; width: 84px; height: 84px; border-radius: 50%; border: 2px solid var(--line); background: var(--panel); color: var(--ink); font-family: inherit; font-size: 14px; touch-action: none; }
-  #touch .right button { width: 72px; height: 72px; font-size: 12px; }
-  #touch button.down { background: var(--rust); }
+  #touch { position: fixed; inset: 0; pointer-events: none; }
+  /* Левый палец: стик появляется там, где коснулся */
+  #stick-zone { position: absolute; left: 0; bottom: 0; width: 50%; height: 72%; pointer-events: auto; touch-action: none; }
+  #stick { position: absolute; left: calc(max(20px, env(safe-area-inset-left)) + 60px); top: calc(100% - max(20px, env(safe-area-inset-bottom)) - 60px);
+    width: 120px; height: 120px; margin: -60px 0 0 -60px; border-radius: 50%; border: 2px solid var(--line); background: rgba(28, 20, 15, 0.35); opacity: .7; }
+  #stick::before, #stick::after { content: '◀'; position: absolute; top: 50%; left: 8px; transform: translateY(-50%); color: var(--muted); font-size: 14px; }
+  #stick::after { content: '▶'; left: auto; right: 8px; }
+  #stick-knob { position: absolute; left: 50%; top: 50%; width: 56px; height: 56px; margin: -28px 0 0 -28px; border-radius: 50%; background: var(--panel); border: 2px solid var(--sand); box-shadow: 0 3px 0 rgba(0,0,0,.4); }
+  #stick-zone .hint { position: absolute; left: max(20px, env(safe-area-inset-left)); bottom: calc(max(20px, env(safe-area-inset-bottom)) + 126px); font-size: 11px; color: var(--ink); opacity: .75; text-shadow: 0 1px 2px #000; }
+  #stick-zone.active .hint { display: none; }
+  #stick-zone.active #stick { opacity: 1; }
+  #stick-zone.braking #stick-knob { border-color: var(--hp); background: rgba(216, 67, 42, 0.55); }
+  /* Правый палец: большой ОГОНЬ в углу, остальное по дуге вокруг */
+  #touch .fire-pad { position: absolute; right: max(16px, env(safe-area-inset-right)); bottom: max(16px, env(safe-area-inset-bottom)); width: 200px; height: 200px; }
+  #touch .fire-pad button { pointer-events: auto; position: absolute; border-radius: 50%; border: 2px solid var(--line); background: var(--panel); color: var(--ink);
+    font-family: inherit; font-size: 11px; line-height: 1.15; touch-action: none; padding: 0; }
+  #touch .fire-pad .fire { right: 0; bottom: 0; width: 112px; height: 112px; font-size: 16px; border-color: var(--rust); background: rgba(196, 80, 28, 0.55); }
+  #touch .fire-pad .alt { right: 120px; bottom: 6px; width: 72px; height: 72px; }
+  #touch .fire-pad .nitro { right: 22px; bottom: 120px; width: 72px; height: 72px; }
+  #touch .fire-pad .alt.empty { opacity: .45; }
+  #touch .fire-pad .nitro.ready { border-color: var(--nitro); box-shadow: 0 0 12px var(--nitro); }
+  #touch .fire-pad button.down { background: var(--rust); border-color: var(--sand); }
+  #touch .fire-pad .nitro.down { background: var(--nitro); }
   body.touch .bottom { top: calc(max(12px, env(safe-area-inset-top)) + 64px); bottom: auto; width: 190px; padding: 6px 10px; }
   body.touch .row { margin: 2px 0; font-size: 11px; }
   body.touch #feed { top: 210px; }
@@ -168,11 +185,9 @@
     #countdown { font-size: 56px; }
     #toast { font-size: 18px; }
     #dead { font-size: 15px; }
-    #touch .pad { bottom: max(8px, env(safe-area-inset-bottom)); gap: 8px; }
-    #touch .left { left: max(10px, env(safe-area-inset-left)); }
-    #touch .right { right: max(10px, env(safe-area-inset-right)); width: 128px; gap: 6px; }
-    #touch button { width: 66px; height: 66px; font-size: 12px; }
-    #touch .right button { width: 58px; height: 58px; font-size: 9px; }
+    #touch .fire-pad { right: max(10px, env(safe-area-inset-right)); bottom: max(8px, env(safe-area-inset-bottom)); transform: scale(.78); transform-origin: right bottom; }
+    #stick { left: calc(max(14px, env(safe-area-inset-left)) + 50px); top: calc(100% - max(10px, env(safe-area-inset-bottom)) - 50px); width: 100px; height: 100px; margin: -50px 0 0 -50px; }
+    #stick-zone .hint { left: max(14px, env(safe-area-inset-left)); bottom: calc(max(10px, env(safe-area-inset-bottom)) + 104px); font-size: 9px; }
     .card { padding: 12px; width: min(760px, 100%); }
     .card h1 { font-size: 30px; } .card h2 { margin-bottom: 6px; font-size: 20px; }
     #trk, #car { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
@@ -210,15 +225,14 @@
 </div>
 
 <div id="touch" hidden>
-  <div class="pad left">
-    <button data-btn="left">◀</button>
-    <button data-btn="right">▶</button>
+  <div id="stick-zone">
+    <span class="hint">Веди пальцем: руль, вниз — тормоз</span>
+    <div id="stick"><div id="stick-knob"></div></div>
   </div>
-  <div class="pad right">
-    <button data-btn="nitro">НИТРО</button>
-    <button data-btn="alt">РАКЕТА<br>МИНА</button>
-    <button data-btn="brake">ТОРМОЗ</button>
-    <button data-btn="fire">ОГОНЬ</button>
+  <div class="fire-pad">
+    <button type="button" class="nitro" data-btn="nitro">НИТРО</button>
+    <button type="button" class="alt" data-btn="alt" id="alt-btn">РАКЕТА<br>МИНА</button>
+    <button type="button" class="fire" data-btn="fire">ОГОНЬ</button>
   </div>
 </div>
 

@@ -76,6 +76,11 @@ export class Hud {
     ($('nitro') as HTMLElement).style.width = `${(player.nitroActive > 0 ? 0 : player.nitro) * 100}%`;
     $('nitro').classList.toggle('ready', player.nitro >= 1 && player.nitroActive <= 0);
     $('weapon').textContent = player.weapon ? `${player.weapon === 'rocket' ? 'Ракеты' : 'Мины'} ×${player.ammo}` : '—';
+    const alt = $('alt-btn');
+    const altText = player.weapon ? `${player.weapon === 'rocket' ? 'РАКЕТА' : 'МИНА'}<br>×${player.ammo}` : 'ПУСТО';
+    if (alt.innerHTML !== altText) alt.innerHTML = altText;
+    alt.classList.toggle('empty', !player.weapon);
+    document.querySelector('#touch .nitro')!.classList.toggle('ready', player.nitro >= 1 && player.nitroActive <= 0);
     $('dead').hidden = player.alive;
     if (!player.alive) $('dead').textContent = `Уничтожен! Возрождение через ${Math.max(0, player.respawnTimer).toFixed(1)}`;
     this.drawMap();
