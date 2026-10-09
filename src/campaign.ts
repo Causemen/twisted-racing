@@ -32,7 +32,7 @@ export interface Gang {
 
 export const GANGS: Gang[] = [
   {
-    id: 'rust', name: 'Ржавники', leader: 'Гайка', cls: 'interceptor', track: 'junkyard', tower: 'Старая Ворчунья', color: '#d07020', style: 'racer',
+    id: 'rust', name: 'Банда Плюшкиной', leader: 'Гайка', cls: 'interceptor', track: 'junkyard', tower: 'Старая Ворчунья', color: '#d07020', style: 'racer',
     members: ['Болт', 'Шуруп', 'Гнутый', 'Паяльник'], motto: 'Не выбросим, приварим.',
     lines: {
       intro: 'Ой, новенький! Колёса есть, руль есть, тормоза есть? Нет? Отлично, тормоза для трусов. Мамочка, поздоровайся!',
@@ -120,7 +120,7 @@ export const HOST_LINES = {
     'Не переключайтесь, у нас тут люди горят, а у вас там ужин стынет.',
   ],
   lastLap: 'Последний круг! Делайте ставки, пока водители ещё живы!',
-  raid: (gang: string, tower: string) => `Срочно в эфир! ${gang} идут отбивать вышку «${tower}». Гонка-оборона, не пропустите!`,
+  raid: (gang: string, tower: string) => `Срочно в эфир! На вышку «${tower}» налёт, едет ${gang}. Гонка-оборона, не пропустите!`,
   raidMissed: (tower: string) => `Вышка «${tower}» простаивает. Пустошь любит нас! Ну, или боится, нам без разницы.`,
 };
 
