@@ -10,7 +10,8 @@ import { Particles } from './particles';
 import { Track, TRACKS } from './track';
 import { bindTouchButtons, isTouch, readInput } from './input';
 import { Hud } from './hud';
-import { Flashes, SkidMarks } from './effects';
+import { Flashes, Scorches, SkidMarks } from './effects';
+import { LIGHTING, flicker } from './scenery';
 import { initAudio, isMuted, sfx, toggleMute, updateCarSound } from './audio';
 
 const renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -23,7 +24,8 @@ const scene = new THREE.Scene();
 scene.background = new THREE.Color(0xd9a86c);
 scene.fog = new THREE.Fog(0xd9a86c, 140, 260);
 
-scene.add(new THREE.HemisphereLight(0xffe6c0, 0x6a4a30, 1.4));
+const hemi = new THREE.HemisphereLight(0xffe6c0, 0x6a4a30, 1.4);
+scene.add(hemi);
 const sun = new THREE.DirectionalLight(0xfff0d8, 2.2);
 sun.castShadow = true;
 sun.shadow.mapSize.set(2048, 2048);
@@ -63,6 +65,14 @@ function applyTheme() {
   const sky = track.def.colors.sky;
   (scene.background as THREE.Color).set(sky);
   scene.fog!.color.set(sky);
+  const l = LIGHTING[track.def.id] ?? LIGHTING.junkyard;
+  hemi.color.set(l.hemiSky);
+  hemi.groundColor.set(l.hemiGround);
+  hemi.intensity = l.hemi;
+  sun.color.set(l.sun);
+  sun.intensity = l.sunPower;
+  const fog = scene.fog as THREE.Fog;
+  [fog.near, fog.far] = l.fog;
 }
 
 function loadTrack(id: string) {
@@ -79,6 +89,8 @@ scene.add(particles.mesh);
 const skids = new SkidMarks();
 scene.add(skids.mesh);
 const flashes = new Flashes(scene);
+const scorches = new Scorches();
+scene.add(scorches.mesh);
 
 const cars: Car[] = [];
 let bots: Bot[] = [];
@@ -116,6 +128,7 @@ const combat = new Combat(scene, cars, particles, track, {
   },
   onBlast(pos, power) {
     flashes.flash(pos, power);
+    scorches.add(pos, power);
     const d = pos.distanceTo(player.pos);
     shake = Math.max(shake, power * Math.max(0, 1 - d / 40));
   },
@@ -181,6 +194,7 @@ function startRace(cfg: RaceConfig) {
   lastLapAnnounced = false;
   combat.reset();
   skids.clear();
+  scorches.clear();
   placeOnGrid();
   state = 'countdown';
   countdown = 3.5;
@@ -309,9 +323,8 @@ function physics(c: Car, dt: number) {
   }
 
   // Дым и огонь от повреждений
-  if (c.hp < 50 && Math.random() < (c.hp < 25 ? 0.6 : 0.25)) {
-    const p = c.pos.clone().setY(c.y + 1.3);
-    particles.spawn(p, new THREE.Vector3((Math.random() - 0.5) * 2, 3, (Math.random() - 0.5) * 2), 0.9, 0.5, c.hp < 25 ? 0xff7020 : 0x6a6058, 0x2a2622, 2);
+  if (c.alive && c.hp < 50 && Math.random() < (c.hp < 25 ? 0.7 : 0.3)) {
+    particles.damageSmoke(c.pos.clone().setY(c.y + 1.3), c.hp < 25);
   }
   // Следы шин при заносе и резком торможении
   const fwd = c.forward;
@@ -321,8 +334,13 @@ function physics(c: Car, dt: number) {
   else skids.lift(c);
 
   if (c.nitroActive > 0) {
-    const p = c.pos.clone().addScaledVector(c.forward, -2.2).setY(c.y + 0.9);
-    particles.spawn(p, c.forward.multiplyScalar(-6), 0.25, 0.5, 0x80c0ff, 0xff6020, 0.5);
+    // Пламя из выхлопов модели: у Колесницы бьёт вверх из труб органа
+    for (const ex of c.exhausts) {
+      const p = c.mesh.localToWorld(ex.clone());
+      const up = ex.y > 1.5 ? 5 : 0.5;
+      const v = c.forward.multiplyScalar(-6).add(new THREE.Vector3(0, up, 0)).add(c.vel.clone().multiplyScalar(0.8));
+      if (Math.random() < 0.5) particles.spawn(p, v, 0.22, ex.y > 1.5 ? 0.55 : 0.45, 0x2048a0, 0xa03008, 0.4, 0, true);
+    }
   }
 }
 
@@ -409,6 +427,7 @@ function step(dt: number) {
   }
   particles.update(dt);
   flashes.update(dt);
+  flicker(elapsed);
 }
 
 function render(dt: number) {

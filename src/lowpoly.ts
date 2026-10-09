@@ -32,11 +32,17 @@ export const LIGHT = 0xfff2c0;
 export interface CarModel {
   root: THREE.Group;
   wheels: THREE.Object3D[];
+  exhausts: THREE.Vector3[]; // точки выхлопа: отсюда бьёт пламя нитро
 }
 
 export class Kit {
   readonly root = new THREE.Group();
   readonly wheels: THREE.Object3D[] = [];
+  readonly exhausts: THREE.Vector3[] = [];
+
+  exhaust(x: number, y: number, z: number) {
+    this.exhausts.push(new THREE.Vector3(x, y, z));
+  }
 
   box(w: number, h: number, d: number, color: number | THREE.Material, x: number, y: number, z: number, rx = 0, ry = 0, rz = 0, parent: THREE.Object3D = this.root) {
     return this.mesh(new THREE.BoxGeometry(w, h, d), color, x, y, z, rx, ry, rz, parent);
@@ -85,7 +91,7 @@ export class Kit {
   }
 
   done(): CarModel {
-    return { root: this.root, wheels: this.wheels };
+    return { root: this.root, wheels: this.wheels, exhausts: this.exhausts };
   }
 }
 

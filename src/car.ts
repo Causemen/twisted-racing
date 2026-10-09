@@ -34,6 +34,8 @@ export class Car {
   readonly mesh = new THREE.Group();
   private readonly body = new THREE.Group();
   private wheels: THREE.Object3D[] = [];
+  /** Точки выхлопа модели (в координатах машины), для пламени нитро. */
+  exhausts: THREE.Vector3[] = [];
 
   pos = new THREE.Vector3();
   vel = new THREE.Vector3();
@@ -210,8 +212,9 @@ export class Car {
   }
 
   private buildMesh() {
-    const { root, wheels } = buildCarModel(this.cls.id);
+    const { root, wheels, exhausts } = buildCarModel(this.cls.id);
     this.wheels = wheels;
+    this.exhausts = exhausts;
     this.body.add(root);
     this.mesh.add(this.body);
   }
