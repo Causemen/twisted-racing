@@ -4,6 +4,12 @@
 
 Документы: [концепция](docs/concept.md), [план разработки](docs/plan.md).
 
+## Играть
+
+Свежая версия из ветки `main`: https://causemen.github.io/twisted-racing/
+
+Публикуется автоматически после каждого изменения в `main` (`.github/workflows/deploy.yml`).
+
 ## Запуск
 
 ```bash
