@@ -2,6 +2,8 @@ import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 
 const loader = new GLTFLoader();
+// Текстура моделей лежит в public/models/Textures, путь задаём явно: сами .glb могут быть встроены в JS
+loader.setResourcePath('models/');
 const cache = new Map<string, Promise<THREE.Group>>();
 
 export function loadModel(url: string): Promise<THREE.Group> {

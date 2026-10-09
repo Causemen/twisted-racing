@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite --host",
     "build": "vite build",
+    "build:artifact": "ARTIFACT=1 vite build --outDir dist-artifact",
     "preview": "vite preview --host",
     "typecheck": "tsc --noEmit"
   },

@@ -7,6 +7,10 @@ import { Particles } from './particles';
 import { Track } from './track';
 import { bindTouchButtons, isTouch, readInput } from './input';
 import { Hud } from './hud';
+import truckPurple from './models/vehicle-truck-purple.glb?url';
+import truckRed from './models/vehicle-truck-red.glb?url';
+import truckGreen from './models/vehicle-truck-green.glb?url';
+import truckYellow from './models/vehicle-truck-yellow.glb?url';
 import { initAudio, isMuted, sfx, toggleMute, updateCarSound } from './audio';
 
 const renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -57,13 +61,13 @@ const particles = new Particles();
 scene.add(particles.mesh);
 
 const SPECS: { name: string; color: number; model: string; style?: BotStyle; aim?: number; speed?: number }[] = [
-  { name: 'Ты', color: 0x8a4fc0, model: 'purple' },
-  { name: 'Бешеный Пёс', color: 0xb03a20, model: 'red', style: 'brawler', aim: 0.7, speed: 0.97 },
-  { name: 'Ржавая Вдова', color: 0x6f8a3a, model: 'green', style: 'racer', aim: 0.5, speed: 1.0 },
-  { name: 'Поп-Минёр', color: 0xc9a227, model: 'yellow', style: 'miner', aim: 0.4, speed: 0.95 },
+  { name: 'Ты', color: 0x8a4fc0, model: truckPurple },
+  { name: 'Бешеный Пёс', color: 0xb03a20, model: truckRed, style: 'brawler', aim: 0.7, speed: 0.97 },
+  { name: 'Ржавая Вдова', color: 0x6f8a3a, model: truckGreen, style: 'racer', aim: 0.5, speed: 1.0 },
+  { name: 'Поп-Минёр', color: 0xc9a227, model: truckYellow, style: 'miner', aim: 0.4, speed: 0.95 },
 ];
 
-const cars = SPECS.map((s, i) => new Car({ name: s.name, color: s.color, isPlayer: i === 0, speedMult: s.speed, model: `models/vehicle-truck-${s.model}.glb` }));
+const cars = SPECS.map((s, i) => new Car({ name: s.name, color: s.color, isPlayer: i === 0, speedMult: s.speed, model: s.model }));
 for (const c of cars) scene.add(c.mesh);
 const player = cars[0];
 
