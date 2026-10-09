@@ -1,4 +1,4 @@
-# Twisted Racing
+# RUSTMANIA
 
 Боевые кольцевые гонки в изометрии: вид как в Rock n' Roll Racing, бой как в Twisted Metal, пустоши в духе «Безумного Макса». Сначала браузер, потом Android (Capacitor).
 
