@@ -29,8 +29,8 @@ export const CONFIG = {
     ramDamageThreshold: 12,
   },
 
-  gun: { aimAssist: 0.22, rate: 9, speed: 80, life: 0.45, damage: 3.5, spread: 0.04, heatPerShot: 0.055, coolRate: 0.4 },
-  rocket: { speed: 46, life: 2.2, damage: 38, radius: 4.5, turn: 2.4, cooldown: 0.5 },
+  gun: { aimAssist: 0.22, rate: 9, speed: 80, life: 0.45, damage: 3.5, spread: 0.04, heatPerShot: 0.11, coolRate: 0.4 },
+  rocket: { speed: 46, life: 6.5, damage: 38, radius: 4.5, turn: 2.4, cooldown: 0.5 },
   mine: { damage: 32, radius: 2.4, blastRadius: 4, armTime: 0.6, life: 30 },
   repairAmount: 40,
 };
