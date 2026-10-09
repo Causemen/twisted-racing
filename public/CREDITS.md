@@ -1,3 +1,5 @@
 # Сторонние ресурсы
 
-- Модели грузовиков (`models/vehicle-truck-*.glb`) и звуки (`audio/engine.ogg`, `audio/skid.ogg`, `audio/impact.ogg`) — Kenney, Starter Kit Racing (https://github.com/KenneyNL/Starter-Kit-Racing), лицензия CC0.
+- Звуки (`audio/engine.ogg`, `audio/skid.ogg`, `audio/impact.ogg`) — Kenney, Starter Kit Racing (https://github.com/KenneyNL/Starter-Kit-Racing), лицензия CC0.
+
+Машины банд — собственные low-poly модели, собраны из примитивов в коде (`src/carModels.ts`).

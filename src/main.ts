@@ -11,10 +11,6 @@ import { Track, TRACKS } from './track';
 import { bindTouchButtons, isTouch, readInput } from './input';
 import { Hud } from './hud';
 import { Flashes, SkidMarks } from './effects';
-import truckPurple from './models/vehicle-truck-purple.glb?url';
-import truckRed from './models/vehicle-truck-red.glb?url';
-import truckGreen from './models/vehicle-truck-green.glb?url';
-import truckYellow from './models/vehicle-truck-yellow.glb?url';
 import { initAudio, isMuted, sfx, toggleMute, updateCarSound } from './audio';
 
 const renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -84,8 +80,6 @@ const skids = new SkidMarks();
 scene.add(skids.mesh);
 const flashes = new Flashes(scene);
 
-const MODEL_URLS = { purple: truckPurple, red: truckRed, green: truckGreen, yellow: truckYellow };
-
 const cars: Car[] = [];
 let bots: Bot[] = [];
 let player!: Car;
@@ -98,7 +92,7 @@ function setupCars(entries: RaceEntry[]) {
   bots = [];
   for (const e of entries) {
     const cls = CAR_CLASSES.find((c) => c.id === e.cls)!;
-    const car = new Car({ name: e.name, color: cls.color, isPlayer: !!e.isPlayer, speedMult: e.speed ?? 1, model: MODEL_URLS[cls.model], cls, mods: e.mods });
+    const car = new Car({ name: e.name, color: cls.color, isPlayer: !!e.isPlayer, speedMult: e.speed ?? 1, cls, mods: e.mods });
     cars.push(car);
     scene.add(car.mesh);
     if (e.lines) lines.set(car, e.lines);
