@@ -271,7 +271,7 @@ export class Ui {
     const raidBanner = s.raid ? this.quote(C.HOST, C.HOST_LINES.raid(C.gang(s.raid).name, C.gang(s.raid).tower) + ' Если поедешь в другую гонку, вышка встанет.') : '';
     this.show(`
       <div class="head"><button type="button" class="back" data-act="menu">← Меню</button><h2>Пустошь</h2></div>
-      <div class="bank"><span>Горючка <b>${s.fuel} л</b></span><span>Вышки <b>${C.towersOwned(s)}/5</b></span><span>Банда <b style="color:${mine.color}">${mine.name}</b></span></div>
+      <div class="bank"><span>Горючка <b>${s.fuel} л</b></span><span>Вышки <b>${C.towersOwned(s)}/5</b></span><span><b style="color:${mine.color}">${mine.name}</b></span></div>
       ${passive ? `<p class="muted small">Пока тебя не было, вышки накачали ${passive} л.</p>` : ''}
       ${s.finalWon ? this.quote(mine.leader, `Ты теперь главарь «${mine.name}». Кстати, тебе письмо из Шпиля. Пахнет неприятностями.`) : ''}
       ${raidBanner}
