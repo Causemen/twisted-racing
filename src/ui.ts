@@ -60,6 +60,7 @@ export class Ui {
     $('screen').scrollTop = 0;
     $('overlay').hidden = false;
     $('hud').hidden = true;
+    $('host').hidden = true;
   }
 
   private on(sel: string, fn: (el: HTMLElement) => void) {
@@ -84,10 +85,6 @@ export class Ui {
     this.show(`
       <div class="onair"><span class="live">В ЭФИРЕ</span><span>Канал «Горячий эфир»</span></div>
       <h1 class="logo"><img src="art/logo.webp" alt="RUSTMANIA. Боевые гонки пустоши"></h1>
-      <div class="host">
-        <img src="art/face-host.webp" alt="">
-        <div class="bubble"><b id="host-who">${esc(C.HOST)}</b><span id="host-line">${esc(MENU_LINES[0])}</span></div>
-      </div>
       <div class="menu">
         <button type="button" class="big" data-act="campaign">${cont}</button>
         <button type="button" class="big alt" data-act="quick">Быстрая гонка <small>Любая трасса, любая машина</small></button>
@@ -101,15 +98,45 @@ export class Ui {
     this.on('[data-act="quick"]', () => this.quickSetup());
     this.on('[data-act="help"]', () => this.help());
     // Ведущий болтает сам, тап по главарю даёт слово ему
+    // Говорящий выезжает сбоку экрана, как кадр комикса; смена говорящего — уезжает и выезжает снова
     let i = 0;
-    const say = (who: string, text: string) => {
+    const host = $('host');
+    const enter = () => {
+      host.classList.remove('in', 'out', 'pop');
+      void host.offsetWidth;
+      host.classList.add('in');
+    };
+    const fill = (who: string, text: string, face: string, color: string) => {
+      const img = $('host-face') as HTMLImageElement;
+      img.src = face;
+      img.style.borderColor = color;
       $('host-who').textContent = who;
       $('host-line').textContent = text;
     };
+    const say = (who: string, text: string, face = 'art/face-host.webp', color = '') => {
+      clearTimeout(this.swapTimer);
+      if (($('host-face') as HTMLImageElement).getAttribute('src') === face) {
+        // Тот же говорящий: только «пузырь» подпрыгивает с новой репликой
+        fill(who, text, face, color);
+        host.classList.remove('pop');
+        void host.offsetWidth;
+        host.classList.add('pop');
+        return;
+      }
+      host.classList.remove('in', 'pop');
+      host.classList.add('out');
+      this.swapTimer = window.setTimeout(() => {
+        fill(who, text, face, color);
+        enter();
+      }, 260);
+    };
+    fill(C.HOST, MENU_LINES[0], 'art/face-host.webp', '');
+    host.hidden = false;
+    enter();
     const talk = (ms: number) => {
       clearInterval(this.hostTimer);
       this.hostTimer = window.setInterval(() => {
-        if (!document.getElementById('host-line')) return clearInterval(this.hostTimer);
+        if (host.hidden) return clearInterval(this.hostTimer);
         i = (i + 1) % MENU_LINES.length;
         say(C.HOST, MENU_LINES[i]);
         $('screen').querySelectorAll('.face.on').forEach((f) => f.classList.remove('on'));
@@ -119,13 +146,14 @@ export class Ui {
     talk(5000);
     this.on('.face', (b) => {
       const g = C.gang(b.dataset.gang as C.GangId);
-      say(`${g.leader}, «${g.name}»`, g.lines.intro);
+      say(`${g.leader}, «${g.name}»`, g.lines.intro, `art/face-${g.id}.webp`, g.color);
       talk(9000);
       $('screen').querySelectorAll('.face').forEach((f) => f.classList.toggle('on', f === b));
     });
   }
 
   private hostTimer = 0;
+  private swapTimer = 0;
 
   private help() {
     const touch = `<div class="keys howto">
