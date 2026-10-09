@@ -8,7 +8,7 @@ import { HOST, HOST_LINES } from './campaign';
 import { Combat } from './combat';
 import { Particles } from './particles';
 import { Track, TRACKS } from './track';
-import { bindTouchButtons, isTouch, readInput } from './input';
+import { bindTouchButtons, bindTouchStick, isTouch, readInput } from './input';
 import { Hud } from './hud';
 import { Flashes, Scorches, SkidMarks } from './effects';
 import { LIGHTING, flicker } from './scenery';
@@ -227,6 +227,7 @@ window.addEventListener('keydown', (e) => {
   }
 });
 bindTouchButtons(document.getElementById('touch')!);
+bindTouchStick(document.getElementById('stick-zone')!, document.getElementById('stick')!, document.getElementById('stick-knob')!);
 if (isTouch) document.body.classList.add('touch');
 document.getElementById('touch')!.hidden = !isTouch;
 
