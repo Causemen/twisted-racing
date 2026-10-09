@@ -7,14 +7,50 @@ export interface TrackSample {
   n: THREE.Vector3; // поперечная ось
 }
 
-// Контрольные точки центральной линии (x, z). Замкнутый круг.
-const CONTROL: [number, number][] = [
-  [0, 0], [60, -5], [100, 20], [110, 60], [80, 85], [40, 70], [15, 95],
-  [-30, 100], [-60, 70], [-45, 35], [-70, 10], [-50, -25],
+export interface TrackDef {
+  id: string;
+  label: string;
+  desc: string;
+  points: [number, number][]; // центральная линия (x, z), замкнутый круг
+  scale: number;
+  ramps: number[]; // доли круга, 0..1
+  pickups: number[];
+  seed: number; // раскладка препятствий
+  colors: { ground: number; shoulder: number; road: number; sky: number; boundary: number; rock: number };
+}
+
+export const TRACKS: TrackDef[] = [
+  {
+    id: 'junkyard',
+    label: 'Ржавая Свалка',
+    desc: 'Петля по пустоши среди камней и бочек',
+    points: [
+      [0, 0], [60, -5], [100, 20], [110, 60], [80, 85], [40, 70], [15, 95],
+      [-30, 100], [-60, 70], [-45, 35], [-70, 10], [-50, -25],
+    ],
+    scale: 1.4,
+    ramps: [0.233, 0.525, 0.767],
+    pickups: [0.125, 0.367, 0.625, 0.883],
+    seed: 1234,
+    colors: { ground: 0xc9935a, shoulder: 0xa87444, road: 0x4a3f38, sky: 0xd9a86c, boundary: 0x7d5a3e, rock: 0x8a6446 },
+  },
+  {
+    id: 'saltflat',
+    label: 'Соляная Пустошь',
+    desc: 'Длинная прямая и тесные шпильки на белой соли',
+    points: [
+      [0, 0], [90, 0], [120, 30], [100, 60], [60, 50], [30, 80], [60, 110],
+      [20, 130], [-40, 120], [-60, 80], [-30, 50], [-60, 20], [-40, -10],
+    ],
+    scale: 1.4,
+    ramps: [0.08, 0.45, 0.8],
+    pickups: [0.2, 0.38, 0.6, 0.9],
+    seed: 777,
+    colors: { ground: 0xe4dccb, shoulder: 0xcfc3a8, road: 0x5a5148, sky: 0xeee4d0, boundary: 0x9c8f7a, rock: 0xa89a84 },
+  },
 ];
 
 const SAMPLE_COUNT = 1200;
-const SCALE = 1.4;
 
 export type ObstacleKind = 'rock' | 'block' | 'tires' | 'barrel';
 
@@ -33,8 +69,8 @@ export class Track {
   readonly width = CONFIG.trackWidth;
   readonly samples: TrackSample[] = [];
   readonly shoulder = CONFIG.shoulder;
-  readonly ramps = [280, 630, 920];
-  readonly pickupSpots = [150, 440, 750, 1060];
+  readonly ramps: number[];
+  readonly pickupSpots: number[];
   readonly obstacles: Obstacle[] = [];
   readonly group = new THREE.Group();
   readonly spacing: number;
@@ -43,9 +79,11 @@ export class Track {
     return this.samples.length;
   }
 
-  constructor() {
+  constructor(readonly def: TrackDef) {
+    this.ramps = def.ramps.map((f) => Math.round(f * SAMPLE_COUNT));
+    this.pickupSpots = def.pickups.map((f) => Math.round(f * SAMPLE_COUNT));
     const curve = new THREE.CatmullRomCurve3(
-      CONTROL.map(([x, z]) => new THREE.Vector3(x * SCALE, 0, z * SCALE)),
+      def.points.map(([x, z]) => new THREE.Vector3(x * def.scale, 0, z * def.scale)),
       true,
       'centripetal',
     );
@@ -96,7 +134,7 @@ export class Track {
     // Земля
     const ground = new THREE.Mesh(
       new THREE.PlaneGeometry(900, 900),
-      new THREE.MeshLambertMaterial({ color: 0xc9935a }),
+      new THREE.MeshLambertMaterial({ color: this.def.colors.ground }),
     );
     ground.rotation.x = -Math.PI / 2;
     ground.position.set(20, -0.05, 40);
@@ -104,9 +142,9 @@ export class Track {
     this.group.add(ground);
 
     // Полотно трассы и бордюры
-    this.group.add(this.ribbon(W / 2 + 4, 0.01, () => new THREE.Color(0xa87444)));
+    this.group.add(this.ribbon(W / 2 + 4, 0.01, () => new THREE.Color(this.def.colors.shoulder)));
     this.group.add(this.ribbon(W / 2, 0.03, (i) => {
-      const c = new THREE.Color(0x4a3f38);
+      const c = new THREE.Color(this.def.colors.road);
       return c.offsetHSL(0, 0, ((i * 7919) % 13) / 400);
     }));
     this.group.add(this.kerbs());
@@ -151,14 +189,14 @@ export class Track {
   }
 
   private placeObstacles() {
-    let seed = 1234;
+    let seed = this.def.seed;
     const rnd = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
     const N = this.N;
     const W = this.width;
     const near = (i: number, list: number[], d: number) => list.some((r) => Math.abs(((i - r + N + N / 2) % N) - N / 2) < d);
 
     const rockGeo = new THREE.DodecahedronGeometry(1, 0);
-    const rockMat = new THREE.MeshLambertMaterial({ color: 0x8a6446 });
+    const rockMat = new THREE.MeshLambertMaterial({ color: this.def.colors.rock });
     const blockGeo = new THREE.BoxGeometry(2.6, 1.3, 1.3);
     const blockMat = new THREE.MeshLambertMaterial({ color: 0x9a948a });
     const stripeMat = new THREE.MeshLambertMaterial({ color: 0xb03a1a });
@@ -249,7 +287,7 @@ export class Track {
     let seed = 99;
     const rnd = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
     const geo = new THREE.DodecahedronGeometry(1, 0);
-    const mat = new THREE.MeshLambertMaterial({ color: 0x7d5a3e });
+    const mat = new THREE.MeshLambertMaterial({ color: this.def.colors.boundary });
     const N = this.N;
     const count = Math.ceil(N / 6) * 2;
     const inst = new THREE.InstancedMesh(geo, mat, count);
@@ -354,7 +392,7 @@ export class Track {
     let seed = 7;
     const rnd = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
     const rockGeo = new THREE.DodecahedronGeometry(1, 0);
-    const rockMat = new THREE.MeshLambertMaterial({ color: 0x9a7350 });
+    const rockMat = new THREE.MeshLambertMaterial({ color: this.def.colors.rock });
     const barrelGeo = new THREE.CylinderGeometry(0.6, 0.6, 1.4, 10);
     const barrelMat = new THREE.MeshLambertMaterial({ color: 0x7a2e1c });
     const tireGeo = new THREE.TorusGeometry(0.8, 0.35, 6, 12);

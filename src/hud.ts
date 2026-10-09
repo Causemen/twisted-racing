@@ -1,12 +1,13 @@
 import { CAR_CLASSES, CONFIG, type CarClassId } from './config';
 import type { Car } from './car';
-import type { Track } from './track';
+import { TRACKS, type Track } from './track';
 
 const $ = (id: string) => document.getElementById(id)!;
 
 export class Hud {
   onStart: () => void = () => {};
   selectedClass: CarClassId = 'interceptor';
+  selectedTrack = TRACKS[0].id;
   private map = $('minimap') as HTMLCanvasElement;
   private mapCtx = this.map.getContext('2d')!;
   private bounds = { minX: 0, maxX: 0, minZ: 0, maxZ: 0 };
@@ -15,10 +16,31 @@ export class Hud {
   constructor(private cars: Car[], private track: Track) {
     $('start-btn').addEventListener('click', () => this.onStart());
     this.buildCarSelect();
+    this.buildTrackSelect();
+    this.setTrack(track);
+  }
+
+  setTrack(track: Track) {
+    this.track = track;
     // Повернуть карту так же, как камера: экран-вправо = (-x+z), экран-вверх = (x+z)
     const xs = track.samples.map((s) => s.p.z - s.p.x);
     const zs = track.samples.map((s) => -(s.p.x + s.p.z));
     this.bounds = { minX: Math.min(...xs), maxX: Math.max(...xs), minZ: Math.min(...zs), maxZ: Math.max(...zs) };
+  }
+
+  private buildTrackSelect() {
+    const box = $('track-select');
+    box.innerHTML = TRACKS.map(
+      (t) => `<button type="button" class="trk" data-id="${t.id}"><b>${t.label}</b><small>${t.desc}</small></button>`,
+    ).join('');
+    const sync = () => box.querySelectorAll<HTMLElement>('.trk').forEach((b) => b.classList.toggle('on', b.dataset.id === this.selectedTrack));
+    box.querySelectorAll<HTMLElement>('.trk').forEach((b) =>
+      b.addEventListener('click', () => {
+        this.selectedTrack = b.dataset.id!;
+        sync();
+      }),
+    );
+    sync();
   }
 
   private buildCarSelect() {

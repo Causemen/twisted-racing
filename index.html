@@ -64,6 +64,12 @@
   td, th { padding: 6px; border-bottom: 1px solid var(--line); text-align: left; }
   th { color: var(--muted); font-weight: 400; font-size: 12px; }
   tr.me td { color: var(--sand); }
+  #track-select { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin-top: 12px; }
+  .trk { font-family: inherit; text-align: left; color: var(--ink); background: rgba(255,255,255,0.04); border: 2px solid var(--line); border-radius: 10px; padding: 8px 10px; cursor: pointer; display: grid; gap: 2px; }
+  .trk b { font-weight: 400; font-size: 15px; }
+  .trk small { color: var(--muted); font-size: 11px; font-family: system-ui, sans-serif; }
+  .trk.on { border-color: var(--sand); background: rgba(227,178,95,0.12); }
+  .trk:focus-visible { outline: 2px solid var(--sand); outline-offset: 2px; }
   #car-select { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin: 12px 0 4px; }
   .car { font-family: inherit; text-align: left; color: var(--ink); background: rgba(255,255,255,0.04); border: 2px solid var(--line); border-left: 6px solid var(--car); border-radius: 10px; padding: 8px 10px; cursor: pointer; display: grid; gap: 3px; }
   .car b { font-weight: 400; font-size: 15px; }
@@ -75,6 +81,7 @@
   .stat i { flex: 1; height: 5px; border-radius: 3px; background: linear-gradient(90deg, var(--sand) var(--v), rgba(255,255,255,0.1) var(--v)); }
   .keys { margin: 10px 0; }
   @media (max-width: 420px) { .card { padding: 14px; } .keys { display: none; } }
+  @media (max-height: 800px) { .keys { font-size: 12px; line-height: 1.55; margin: 6px 0; } h1 { font-size: 36px; } .card .muted { margin: 4px 0; } }
   #start-btn { margin-top: 8px; font-family: inherit; font-size: 22px; padding: 12px 36px; border: 0; border-radius: 10px; background: var(--rust); color: #fff; cursor: pointer; box-shadow: 0 4px 0 #6a2a10; }
   #start-btn:active { transform: translateY(2px); box-shadow: 0 2px 0 #6a2a10; }
 
@@ -139,7 +146,7 @@
   <div class="card">
     <div id="overlay-body">
       <h1>TWISTED RACING</h1>
-      <p class="muted">Версия 0.4. Три круга по пустоши, три бешеных соперника. Доедь первым, а кто мешает — взорви.</p>
+      <p class="muted">Версия 0.5. Две трассы, четыре машины, три бешеных соперника. Доедь первым, а кто мешает — взорви.</p>
       <div class="keys">
         <div><kbd>WASD</kbd> или стрелки — руль, газ, тормоз</div>
         <div><kbd>Пробел</kbd>, <kbd>X</kbd> или левая кнопка мыши — пулемёт (следи за перегревом)</div>
@@ -148,6 +155,7 @@
         <div>На телефоне газ автоматический, кнопки на экране.</div>
       </div>
     </div>
+    <div id="track-select" aria-label="Выбор трассы"></div>
     <div id="car-select" aria-label="Выбор машины"></div>
     <button id="start-btn">Старт</button>
   </div>
