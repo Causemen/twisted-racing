@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { CONFIG } from './config';
+import { loadModel } from './assets';
 
 export interface CarInput {
   throttle: number; // -1..1
@@ -16,6 +17,7 @@ export interface CarSpec {
   color: number;
   isPlayer: boolean;
   speedMult?: number;
+  model?: string;
 }
 
 const C = CONFIG.car;
@@ -26,7 +28,7 @@ export class Car {
   readonly color: number;
   readonly mesh = new THREE.Group();
   private readonly body = new THREE.Group();
-  private readonly wheels: THREE.Mesh[] = [];
+  private wheels: THREE.Object3D[] = [];
 
   pos = new THREE.Vector3();
   vel = new THREE.Vector3();
@@ -67,6 +69,60 @@ export class Car {
     this.color = spec.color;
     this.baseSpeedMult = this.speedMult = spec.speedMult ?? 1;
     this.buildMesh();
+    if (spec.model) void this.useModel(spec.model);
+  }
+
+  /** Подменяет временную модель из примитивов на грузовик Kenney с «безумным» тюнингом. */
+  private async useModel(url: string) {
+    let model: THREE.Group;
+    try {
+      model = await loadModel(url);
+    } catch {
+      return; // остаётся модель из примитивов
+    }
+    model.traverse((o) => {
+      const m = o as THREE.Mesh;
+      if (m.isMesh) {
+        const mat = (m.material as THREE.MeshStandardMaterial).clone();
+        mat.color.setRGB(0.86, 0.76, 0.66); // выгоревшая краска
+        mat.roughness = 0.95;
+        m.material = mat;
+      }
+    });
+    const metal = new THREE.MeshLambertMaterial({ color: 0x8d8478 });
+    const rust = new THREE.MeshLambertMaterial({ color: 0x7a4426 });
+    const dark = new THREE.MeshLambertMaterial({ color: 0x2a2420 });
+    const add = (geo: THREE.BufferGeometry, mat: THREE.Material, x: number, y: number, z: number) => {
+      const m = new THREE.Mesh(geo, mat);
+      m.position.set(x, y, z);
+      m.castShadow = true;
+      model.add(m);
+      return m;
+    };
+    // Таран с шипами
+    add(new THREE.BoxGeometry(1.6, 0.22, 0.14), rust, 0, 0.42, 1.45);
+    const spike = new THREE.ConeGeometry(0.07, 0.36, 5);
+    spike.rotateX(Math.PI / 2);
+    for (const x of [-0.6, -0.2, 0.2, 0.6]) add(spike, metal, x, 0.42, 1.68);
+    // Бронеплиты на бортах
+    for (const x of [-0.79, 0.79]) {
+      const plate = add(new THREE.BoxGeometry(0.06, 0.3, 1.1), rust, x, 0.55, -0.1);
+      plate.rotation.z = x > 0 ? -0.08 : 0.08;
+    }
+    // Пулемёт на крыше
+    add(new THREE.BoxGeometry(0.3, 0.14, 0.3), dark, 0, 1.06, 0.15);
+    add(new THREE.BoxGeometry(0.1, 0.1, 0.75), dark, 0, 1.12, 0.45);
+    // Выхлопные трубы
+    const pipe = new THREE.CylinderGeometry(0.06, 0.07, 0.8, 6);
+    for (const x of [-0.5, 0.5]) {
+      const p = add(pipe, metal, x, 0.9, -1.15);
+      p.rotation.x = -0.35;
+    }
+
+    model.scale.setScalar(1.7);
+    this.wheels = model.children.filter((c) => c.name.startsWith('wheel'));
+    this.body.clear();
+    this.body.add(model);
   }
 
   get forward() {

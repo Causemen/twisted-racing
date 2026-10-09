@@ -39,6 +39,7 @@ export interface CombatEvents {
   onKill(victim: Car, killer: Car | null): void;
   onBlast(pos: THREE.Vector3, power: number): void;
   onPickup(car: Car, label: string): void;
+  onSound(kind: 'gun' | 'rocket' | 'explosion', pos: THREE.Vector3): void;
 }
 
 export class Combat {
@@ -113,6 +114,7 @@ export class Combat {
       const p = target.pos.clone().setY(1);
       this.particles.explosion(p, 1.3);
       this.events.onBlast(p, 1.3);
+      this.events.onSound('explosion', p);
       this.events.onKill(target, killer);
     }
   }
@@ -139,6 +141,7 @@ export class Combat {
       this.scene.add(mesh);
       this.bullets.push({ mesh, pos, vel: dir.multiplyScalar(g.speed).add(car.vel), life: g.life, owner: car });
       this.particles.spawn(pos, f.clone().multiplyScalar(4), 0.06, 0.45, 0xfff2b0, 0xff8020);
+      this.events.onSound('gun', pos);
     }
 
     if (car.input.alt && car.weapon && car.ammo > 0 && car.altCooldown <= 0) {
@@ -163,6 +166,7 @@ export class Combat {
     const pos = car.pos.clone().addScaledVector(f, 2.8).setY(car.y + 1.2);
     mesh.position.copy(pos);
     this.scene.add(mesh);
+    this.events.onSound('rocket', pos);
     this.rockets.push({
       mesh,
       pos,
@@ -229,6 +233,7 @@ export class Combat {
     }
     this.particles.explosion(pos, 0.8);
     this.events.onBlast(pos, 0.8);
+    this.events.onSound('explosion', pos);
   }
 
   update(dt: number) {

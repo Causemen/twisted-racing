@@ -7,6 +7,7 @@ import { Particles } from './particles';
 import { Track } from './track';
 import { bindTouchButtons, isTouch, readInput } from './input';
 import { Hud } from './hud';
+import { initAudio, isMuted, sfx, toggleMute, updateCarSound } from './audio';
 
 const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
@@ -55,14 +56,14 @@ scene.add(track.group);
 const particles = new Particles();
 scene.add(particles.mesh);
 
-const SPECS: { name: string; color: number; style?: BotStyle; aim?: number; speed?: number }[] = [
-  { name: 'Ты', color: 0x2f6fb0 },
-  { name: 'Бешеный Пёс', color: 0xb03a20, style: 'brawler', aim: 0.7, speed: 0.97 },
-  { name: 'Ржавая Вдова', color: 0x6f8a3a, style: 'racer', aim: 0.5, speed: 1.0 },
-  { name: 'Поп-Минёр', color: 0xc9a227, style: 'miner', aim: 0.4, speed: 0.95 },
+const SPECS: { name: string; color: number; model: string; style?: BotStyle; aim?: number; speed?: number }[] = [
+  { name: 'Ты', color: 0x8a4fc0, model: 'purple' },
+  { name: 'Бешеный Пёс', color: 0xb03a20, model: 'red', style: 'brawler', aim: 0.7, speed: 0.97 },
+  { name: 'Ржавая Вдова', color: 0x6f8a3a, model: 'green', style: 'racer', aim: 0.5, speed: 1.0 },
+  { name: 'Поп-Минёр', color: 0xc9a227, model: 'yellow', style: 'miner', aim: 0.4, speed: 0.95 },
 ];
 
-const cars = SPECS.map((s, i) => new Car({ name: s.name, color: s.color, isPlayer: i === 0, speedMult: s.speed }));
+const cars = SPECS.map((s, i) => new Car({ name: s.name, color: s.color, isPlayer: i === 0, speedMult: s.speed, model: `models/vehicle-truck-${s.model}.glb` }));
 for (const c of cars) scene.add(c.mesh);
 const player = cars[0];
 
@@ -78,9 +79,20 @@ const combat = new Combat(scene, cars, particles, track, {
     shake = Math.max(shake, power * Math.max(0, 1 - d / 40));
   },
   onPickup(car, label) {
-    if (car === player) hud.toast(label);
+    if (car === player) {
+      hud.toast(label);
+      sfx.pickup();
+    }
+  },
+  onSound(kind, pos) {
+    sfx[kind](hearing(pos));
   },
 });
+
+/** Громкость звука в точке: чем дальше от игрока, тем тише. */
+function hearing(pos: THREE.Vector3) {
+  return Math.max(0, 1 - pos.distanceTo(player.pos) / 70);
+}
 
 const bots = cars.slice(1).map((c, i) => new Bot(c, SPECS[i + 1].style!, SPECS[i + 1].aim!));
 
@@ -118,6 +130,7 @@ function placeOnGrid() {
 }
 
 function startRace() {
+  void initAudio();
   combat.reset();
   placeOnGrid();
   state = 'countdown';
@@ -127,6 +140,19 @@ function startRace() {
 }
 
 hud.onStart = startRace;
+const muteBtn = document.getElementById('mute')!;
+const syncMute = () => (muteBtn.textContent = isMuted() ? 'Звук выкл' : 'Звук вкл');
+syncMute();
+muteBtn.addEventListener('click', () => {
+  toggleMute();
+  syncMute();
+});
+window.addEventListener('keydown', (e) => {
+  if (e.code === 'KeyM') {
+    toggleMute();
+    syncMute();
+  }
+});
 bindTouchButtons(document.getElementById('touch')!);
 if (isTouch) document.body.classList.add('touch');
 document.getElementById('touch')!.hidden = !isTouch;
@@ -206,7 +232,10 @@ function physics(c: Car, dt: number) {
       if (-vn > CONFIG.car.wallDamageThreshold) {
         combat.damage(c, (-vn - CONFIG.car.wallDamageThreshold) * 0.7, null);
       }
-      if (-vn > 6) particles.sparks(o.pos.clone().addScaledVector(n, o.r).setY(0.8), 8);
+      if (-vn > 6) {
+        particles.sparks(o.pos.clone().addScaledVector(n, o.r).setY(0.8), 8);
+        sfx.impact(hearing(c.pos) * Math.min(1, -vn / 25));
+      }
     }
   }
 
@@ -255,6 +284,7 @@ function carCollisions() {
           combat.damage(b, aHitsB ? dmg : dmg * 0.4, a);
           combat.damage(a, aHitsB ? dmg * 0.4 : dmg, b);
           particles.sparks(a.pos.clone().addScaledVector(n, CONFIG.car.radius).setY(0.8), 10);
+          sfx.impact(hearing(a.pos));
         }
       }
     }
@@ -313,6 +343,8 @@ function render(dt: number) {
   sun.target.position.copy(camTarget);
 
   if (state !== 'menu') hud.update(player, raceTime);
+  const slip = Math.abs(player.vel.dot(new THREE.Vector3(player.forward.z, 0, -player.forward.x)));
+  updateCarSound(player.speed, CONFIG.car.maxSpeed, player.onGround ? slip : 0, player.alive && state !== 'menu');
   renderer.render(scene, camera);
 }
 

@@ -44,6 +44,9 @@
   #nitro { background: var(--nitro); opacity: .55; } #nitro.ready { opacity: 1; }
   #weapon { color: var(--sand); font-size: 15px; }
   @keyframes blink { to { opacity: .35; } }
+  .mute-wrap { position: absolute; right: 16px; top: calc(max(12px, env(safe-area-inset-top)) + 140px); }
+  #mute { pointer-events: auto; font-family: inherit; font-size: 12px; color: var(--muted); background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 4px 8px; cursor: pointer; }
+  @media (max-width: 600px) { .mute-wrap { top: calc(max(12px, env(safe-area-inset-top)) + 104px); } }
   #feed { position: absolute; top: 90px; left: 16px; font-size: 14px; text-shadow: 0 1px 2px #000; }
   #feed div { margin: 2px 0; } #feed .hl { color: var(--sand); }
   #countdown { position: absolute; inset: 0; display: grid; place-items: center; font-size: 96px; color: var(--sand); text-shadow: 0 4px 0 #5a2a10, 0 0 30px rgba(0,0,0,.5); }
@@ -92,6 +95,9 @@
     <div class="chip">Время<b id="time">0:00.0</b></div>
     <canvas id="minimap" width="132" height="132"></canvas>
   </div>
+  <div class="mute-wrap">
+    <button id="mute" type="button">Звук вкл</button>
+  </div>
   <div id="feed"></div>
   <div id="countdown" hidden></div>
   <div id="toast" hidden></div>
@@ -121,12 +127,12 @@
   <div class="card">
     <div id="overlay-body">
       <h1>TWISTED RACING</h1>
-      <p class="muted">Прототип 0.2. Три круга по пустоши, три бешеных соперника. Доедь первым, а кто мешает — взорви.</p>
+      <p class="muted">Версия 0.3. Три круга по пустоши, три бешеных соперника. Доедь первым, а кто мешает — взорви.</p>
       <div class="keys">
         <div><kbd>WASD</kbd> или стрелки — руль, газ, тормоз</div>
         <div><kbd>Пробел</kbd>, <kbd>X</kbd> или левая кнопка мыши — пулемёт (следи за перегревом)</div>
         <div><kbd>Shift</kbd> — ракеты или мины из ящиков</div>
-        <div><kbd>E</kbd> — нитро</div>
+        <div><kbd>E</kbd> — нитро, <kbd>M</kbd> — звук</div>
         <div>На телефоне газ автоматический, кнопки на экране.</div>
       </div>
     </div>
