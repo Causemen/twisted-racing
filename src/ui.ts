@@ -47,6 +47,8 @@ export class Ui {
   private mode: Mode = { kind: 'quick' };
   private state: C.CampaignState | null = C.load();
 
+  onSettings = () => {};
+
   constructor(private start: (cfg: RaceConfig) => void) {}
 
   private show(html: string) {
@@ -82,7 +84,7 @@ export class Ui {
       <div class="menu">
         <button type="button" class="big" data-act="campaign">${cont}</button>
         <button type="button" class="big alt" data-act="quick">Быстрая гонка <small>Любая трасса, любая машина</small></button>
-        <button type="button" class="btn2" data-act="help">Как играть</button>
+        <div class="row tight"><button type="button" class="btn2" data-act="help">Как играть</button><button type="button" class="btn2" data-act="settings">Настройки</button></div>
       </div>
       <h3 class="faces-title">Главари банд</h3>
       <div class="faces">${faces}</div>
@@ -91,6 +93,7 @@ export class Ui {
     this.on('[data-act="campaign"]', () => (this.state ? this.map() : this.gangSelect()));
     this.on('[data-act="quick"]', () => this.quickSetup());
     this.on('[data-act="help"]', () => this.help());
+    this.on('[data-act="settings"]', () => this.onSettings());
     // Ведущий болтает сам, тап по главарю даёт слово ему
     // Говорящий выезжает сбоку экрана, как кадр комикса; смена говорящего — уезжает и выезжает снова
     let i = 0;

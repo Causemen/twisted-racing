@@ -3,6 +3,7 @@ import type { Car } from './car';
 import type { Track } from './track';
 import type { RaceResult } from './race';
 import { GANGS, HOST } from './campaign';
+import { buzz } from './pause';
 
 const $ = (id: string) => document.getElementById(id)!;
 
@@ -36,6 +37,8 @@ export class Hud {
     $('overlay').hidden = true;
     $('hud').hidden = false;
     $('say').hidden = true;
+    this.lastHp = -1;
+    this.lastKills = 0;
   }
 
   countdown(t: number) {
@@ -92,7 +95,15 @@ export class Hud {
     });
   }
 
+  private lastHp = -1;
+  private lastKills = 0;
+
   update(player: Car, time: number) {
+    // Отдача на телефоне: короткая вибрация при попадании по тебе и длиннее при убийстве
+    if (this.lastHp >= 0 && player.hp < this.lastHp - 0.5) buzz(player.alive ? 25 : 120);
+    if (player.kills > this.lastKills) buzz([30, 40, 60]);
+    this.lastHp = player.hp;
+    this.lastKills = player.kills;
     const order = this.standings();
     const place = order.indexOf(player) + 1;
     $('lap').textContent = `${Math.min(Math.max(player.lap, 1), this.laps)}/${this.laps}`;
