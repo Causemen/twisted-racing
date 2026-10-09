@@ -79,3 +79,40 @@ export class Flashes {
     for (const l of this.lights) l.intensity *= Math.exp(-7 * dt);
   }
 }
+
+const SCORCHES = 48;
+
+/** Подпалины на земле после взрывов: кольцевой буфер, держатся до конца заезда. */
+export class Scorches {
+  readonly mesh: THREE.InstancedMesh;
+  private next = 0;
+  private m = new THREE.Matrix4();
+  private q = new THREE.Quaternion();
+
+  constructor() {
+    const geo = new THREE.CircleGeometry(1, 9);
+    geo.rotateX(-Math.PI / 2);
+    this.mesh = new THREE.InstancedMesh(
+      geo,
+      new THREE.MeshBasicMaterial({ color: 0x120e0c, transparent: true, opacity: 0.55, depthWrite: false }),
+      SCORCHES,
+    );
+    this.mesh.frustumCulled = false;
+    this.mesh.renderOrder = 1;
+    this.clear();
+  }
+
+  add(pos: THREE.Vector3, power: number) {
+    const r = 2.2 * power * (0.8 + Math.random() * 0.4);
+    this.q.setFromAxisAngle(new THREE.Vector3(0, 1, 0), Math.random() * 6);
+    this.m.compose(new THREE.Vector3(pos.x, 0.05 + this.next * 0.0004, pos.z), this.q, new THREE.Vector3(r, 1, r * (0.75 + Math.random() * 0.25)));
+    this.mesh.setMatrixAt(this.next, this.m);
+    this.next = (this.next + 1) % SCORCHES;
+    this.mesh.instanceMatrix.needsUpdate = true;
+  }
+
+  clear() {
+    for (let i = 0; i < SCORCHES; i++) this.mesh.setMatrixAt(i, this.m.makeScale(0, 0, 0));
+    this.mesh.instanceMatrix.needsUpdate = true;
+  }
+}

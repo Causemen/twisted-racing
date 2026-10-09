@@ -505,6 +505,35 @@ const highway: Theme = {
 
 const THEMES: Record<string, Theme> = { junkyard, saltflat, refinery, canyon, deadcity, highway };
 
+// ───────────────────────── Свет территорий ─────────────────────────
+
+export interface Lighting {
+  hemiSky: number;
+  hemiGround: number;
+  hemi: number;
+  sun: number;
+  sunPower: number;
+  fog: [number, number];
+}
+
+/** Время суток и настроение у каждой территории своё. */
+export const LIGHTING: Record<string, Lighting> = {
+  junkyard: { hemiSky: 0xffe6c0, hemiGround: 0x6a4a30, hemi: 1.4, sun: 0xfff0d8, sunPower: 2.2, fog: [140, 260] },
+  saltflat: { hemiSky: 0xf4f6ff, hemiGround: 0xb8b0a0, hemi: 1.5, sun: 0xffffff, sunPower: 2.4, fog: [150, 280] },
+  refinery: { hemiSky: 0xffb070, hemiGround: 0x3a2418, hemi: 1.1, sun: 0xff9a50, sunPower: 1.9, fog: [110, 230] },
+  canyon: { hemiSky: 0xffc8a0, hemiGround: 0x6a2a18, hemi: 1.3, sun: 0xffc080, sunPower: 2.3, fog: [130, 250] },
+  deadcity: { hemiSky: 0xc8ccd4, hemiGround: 0x4a4640, hemi: 1.35, sun: 0xe8e8f0, sunPower: 1.6, fog: [100, 220] },
+  highway: { hemiSky: 0xffd8a0, hemiGround: 0x6a5030, hemi: 1.35, sun: 0xffd090, sunPower: 2.3, fog: [140, 270] },
+};
+
+/** Языки пламени на факелах дрожат. */
+export function flicker(time: number) {
+  const outer = mat(0xff6a00, { emissive: 0xff4000 }) as THREE.MeshLambertMaterial;
+  const inner = mat(0xffd040, { emissive: 0xffc020 }) as THREE.MeshLambertMaterial;
+  outer.emissiveIntensity = 0.8 + 0.35 * Math.sin(time * 17) * Math.sin(time * 7.3);
+  inner.emissiveIntensity = 1 + 0.25 * Math.sin(time * 23 + 1);
+}
+
 // ───────────────────────── Расстановка ─────────────────────────
 
 export function buildScenery(track: Track): THREE.Group {

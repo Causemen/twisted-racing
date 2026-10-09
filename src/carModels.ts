@@ -61,6 +61,8 @@ function interceptor(): CarModel {
   k.wheel(0.55, 0.42, 1.05, 1.3, ORANGE);
   k.wheel(0.55, 0.48, -1.05, -1.35);
   k.wheel(0.55, 0.48, 1.05, -1.35, 0x5c6b63);
+  k.exhaust(-0.6, 0.5, -2.2);
+  k.exhaust(0.6, 0.5, -2.2);
   return k.done();
 }
 
@@ -116,6 +118,7 @@ function flea(): CarModel {
   // Колёса-баллоны, выступают за кузов
   for (const [x, z] of [[-1.05, 1.15], [1.05, 1.15]]) k.wheel(0.62, 0.62, x, z, BLUE);
   for (const [x, z] of [[-1.1, -1.1], [1.1, -1.1]]) k.wheel(0.72, 0.75, x, z, BLUE);
+  k.exhaust(0.3, 1.42, -1.62);
   return k.done();
 }
 
@@ -162,6 +165,7 @@ function chariot(): CarModel {
     const x = (i - 2) * 0.22;
     k.cyl(0.09, 0.09, h, 7, CHROME, x, 1.25 + h / 2, 0.05);
     k.cyl(0.11, 0.1, 0.08, 7, DARK, x, 1.25 + h, 0.05);
+    k.exhaust(x, 1.3 + h, 0.05);
   });
   // Колонки и прожекторы на крыше
   for (const x of [-0.5, 0.5]) {
@@ -250,6 +254,8 @@ function hearse(): CarModel {
     k.wheel(0.52, 0.42, -1.0, z);
     k.wheel(0.52, 0.42, 1.0, z);
   }
+  k.exhaust(-0.6, 0.5, -3.0);
+  k.exhaust(0.6, 0.5, -3.0);
   return k.done();
 }
 
@@ -307,6 +313,8 @@ function pope(): CarModel {
     k.wheel(0.55, 0.45, -1.15, z);
     k.wheel(0.55, 0.45, 1.15, z);
   }
+  k.exhaust(-0.9, 0.55, -2.5);
+  k.exhaust(0.9, 0.55, -2.5);
   return k.done();
 }
 
@@ -333,7 +341,10 @@ function hauler(): CarModel {
   k.box(2.0, 0.08, 0.1, chrome, 0, 0.85, 3.14);
   k.headlights([-1.1, 1.1], 1.4, 3.12, 0.18);
   // Выхлопные стояки
-  for (const s of [-1, 1]) k.cyl(0.11, 0.11, 2.2, 7, chrome, s * 1.35, 2.0, 0.4);
+  for (const s of [-1, 1]) {
+    k.cyl(0.11, 0.11, 2.2, 7, chrome, s * 1.35, 2.0, 0.4);
+    k.exhaust(s * 1.35, 3.15, 0.4);
+  }
   // Турель в люке с Вовочкой
   const tur = new THREE.Group();
   tur.position.set(0, 2.6, 1.0);
