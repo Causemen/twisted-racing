@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { CONFIG } from './config';
+import { CAR_CLASSES, CONFIG, type CarClassId } from './config';
 import { Car } from './car';
 import { Bot, type BotStyle } from './bot';
 import { Combat } from './combat';
@@ -7,6 +7,7 @@ import { Particles } from './particles';
 import { Track } from './track';
 import { bindTouchButtons, isTouch, readInput } from './input';
 import { Hud } from './hud';
+import { Flashes, SkidMarks } from './effects';
 import truckPurple from './models/vehicle-truck-purple.glb?url';
 import truckRed from './models/vehicle-truck-red.glb?url';
 import truckGreen from './models/vehicle-truck-green.glb?url';
@@ -59,17 +60,41 @@ const track = new Track();
 scene.add(track.group);
 const particles = new Particles();
 scene.add(particles.mesh);
+const skids = new SkidMarks();
+scene.add(skids.mesh);
+const flashes = new Flashes(scene);
 
-const SPECS: { name: string; color: number; model: string; style?: BotStyle; aim?: number; speed?: number }[] = [
-  { name: 'Ты', color: 0x8a4fc0, model: truckPurple },
-  { name: 'Бешеный Пёс', color: 0xb03a20, model: truckRed, style: 'brawler', aim: 0.7, speed: 0.97 },
-  { name: 'Ржавая Вдова', color: 0x6f8a3a, model: truckGreen, style: 'racer', aim: 0.5, speed: 1.0 },
-  { name: 'Поп-Минёр', color: 0xc9a227, model: truckYellow, style: 'miner', aim: 0.4, speed: 0.95 },
+// Машина и цвет закреплены за классом; игрок выбирает класс, остальные достаются ботам
+const MODELS: Record<CarClassId, { model: string; color: number }> = {
+  interceptor: { model: truckPurple, color: 0x8a4fc0 },
+  hearse: { model: truckRed, color: 0xb03a20 },
+  flea: { model: truckGreen, color: 0x6f8a3a },
+  hauler: { model: truckYellow, color: 0xc9a227 },
+};
+const BOT_SPECS: { name: string; style: BotStyle; aim: number; speed: number }[] = [
+  { name: 'Бешеный Пёс', style: 'brawler', aim: 0.7, speed: 0.97 },
+  { name: 'Ржавая Вдова', style: 'racer', aim: 0.5, speed: 1.0 },
+  { name: 'Поп-Минёр', style: 'miner', aim: 0.4, speed: 0.95 },
 ];
 
-const cars = SPECS.map((s, i) => new Car({ name: s.name, color: s.color, isPlayer: i === 0, speedMult: s.speed, model: s.model }));
-for (const c of cars) scene.add(c.mesh);
-const player = cars[0];
+const cars: Car[] = [];
+let bots: Bot[] = [];
+let player!: Car;
+
+function setupCars(playerClass: CarClassId) {
+  for (const c of cars) scene.remove(c.mesh);
+  cars.length = 0;
+  const order = [CAR_CLASSES.find((c) => c.id === playerClass)!, ...CAR_CLASSES.filter((c) => c.id !== playerClass)];
+  order.forEach((cls, i) => {
+    const bot = BOT_SPECS[i - 1];
+    const m = MODELS[cls.id];
+    cars.push(new Car({ name: bot ? bot.name : 'Ты', color: m.color, isPlayer: i === 0, speedMult: bot?.speed ?? 1, model: m.model, cls }));
+  });
+  for (const c of cars) scene.add(c.mesh);
+  player = cars[0];
+  bots = cars.slice(1).map((c, i) => new Bot(c, BOT_SPECS[i].style, BOT_SPECS[i].aim));
+}
+setupCars('interceptor');
 
 const hud = new Hud(cars, track);
 
@@ -79,6 +104,7 @@ const combat = new Combat(scene, cars, particles, track, {
     else hud.feed(`${victim.name} разбился`);
   },
   onBlast(pos, power) {
+    flashes.flash(pos, power);
     const d = pos.distanceTo(player.pos);
     shake = Math.max(shake, power * Math.max(0, 1 - d / 40));
   },
@@ -98,7 +124,6 @@ function hearing(pos: THREE.Vector3) {
   return Math.max(0, 1 - pos.distanceTo(player.pos) / 70);
 }
 
-const bots = cars.slice(1).map((c, i) => new Bot(c, SPECS[i + 1].style!, SPECS[i + 1].aim!));
 
 type State = 'menu' | 'countdown' | 'race' | 'finished';
 let state: State = 'menu';
@@ -118,7 +143,7 @@ function placeOnGrid() {
     c.y = c.vy = 0;
     c.idx = idx;
     c.lap = 0;
-    c.hp = CONFIG.car.hp;
+    c.hp = c.cls.hp;
     c.alive = true;
     c.finished = false;
     c.kills = c.deaths = 0;
@@ -135,7 +160,9 @@ function placeOnGrid() {
 
 function startRace() {
   void initAudio();
+  setupCars(hud.selectedClass);
   combat.reset();
+  skids.clear();
   placeOnGrid();
   state = 'countdown';
   countdown = 3.5;
@@ -167,7 +194,7 @@ function respawn(c: Car) {
   c.heading = Math.atan2(s.t.x, s.t.z);
   c.vel.set(0, 0, 0);
   c.y = c.vy = 0;
-  c.hp = CONFIG.car.hp;
+  c.hp = c.cls.hp;
   c.alive = true;
   c.invuln = CONFIG.invulnTime;
   c.lastHitBy = null;
@@ -256,6 +283,13 @@ function physics(c: Car, dt: number) {
     const p = c.pos.clone().setY(c.y + 1.3);
     particles.spawn(p, new THREE.Vector3((Math.random() - 0.5) * 2, 3, (Math.random() - 0.5) * 2), 0.9, 0.5, c.hp < 25 ? 0xff7020 : 0x6a6058, 0x2a2622, 2);
   }
+  // Следы шин при заносе и резком торможении
+  const fwd = c.forward;
+  const slip = Math.abs(c.vel.dot(new THREE.Vector3(fwd.z, 0, -fwd.x)));
+  const braking = c.input.throttle < 0 && c.vel.dot(fwd) > 8;
+  if (c.onGround && !c.offroad && (slip > 5 || braking)) skids.add(c, c.pos, c.heading, 0.95 * (c.cls.scale / 1.7), 1.1 * (c.cls.scale / 1.7));
+  else skids.lift(c);
+
   if (c.nitroActive > 0) {
     const p = c.pos.clone().addScaledVector(c.forward, -2.2).setY(c.y + 0.9);
     particles.spawn(p, c.forward.multiplyScalar(-6), 0.25, 0.5, 0x80c0ff, 0xff6020, 0.5);
@@ -278,15 +312,17 @@ function carCollisions() {
       b.pos.addScaledVector(n, overlap / 2);
       const rel = a.vel.dot(n) - b.vel.dot(n);
       if (rel > 0) {
-        const imp = rel * 0.75;
-        a.vel.addScaledVector(n, -imp);
-        b.vel.addScaledVector(n, imp);
+        // Больше урона получает тот, в кого врезались
+        const aHitsB = a.vel.dot(n) > -b.vel.dot(n);
+        const imp = rel * 1.5;
+        const ma = a.cls.mass;
+        const mb = b.cls.mass;
+        a.vel.addScaledVector(n, (-imp * mb) / (ma + mb));
+        b.vel.addScaledVector(n, (imp * ma) / (ma + mb));
         if (rel > CONFIG.car.ramDamageThreshold) {
           const dmg = (rel - CONFIG.car.ramDamageThreshold) * 0.8;
-          // Больше урона получает тот, в кого врезались
-          const aHitsB = a.vel.dot(n) + imp > 0;
-          combat.damage(b, aHitsB ? dmg : dmg * 0.4, a);
-          combat.damage(a, aHitsB ? dmg * 0.4 : dmg, b);
+          combat.damage(b, (aHitsB ? dmg : dmg * 0.4) * a.cls.ram, a);
+          combat.damage(a, (aHitsB ? dmg * 0.4 : dmg) * b.cls.ram, b);
           particles.sparks(a.pos.clone().addScaledVector(n, CONFIG.car.radius).setY(0.8), 10);
           sfx.impact(hearing(a.pos));
         }
@@ -331,6 +367,7 @@ function step(dt: number) {
     }
   }
   particles.update(dt);
+  flashes.update(dt);
 }
 
 function render(dt: number) {

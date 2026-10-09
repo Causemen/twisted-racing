@@ -34,3 +34,24 @@ export const CONFIG = {
   mine: { damage: 32, radius: 2.4, blastRadius: 4, armTime: 0.6, life: 30 },
   repairAmount: 40,
 };
+
+export type CarClassId = 'interceptor' | 'hauler' | 'flea' | 'hearse';
+
+export interface CarClass {
+  id: CarClassId;
+  label: string;
+  desc: string;
+  hp: number;
+  speed: number; // множитель максимальной скорости
+  turn: number; // множитель поворота
+  mass: number; // влияет на толчки при столкновениях
+  ram: number; // множитель урона от тарана
+  scale: number; // размер модели
+}
+
+export const CAR_CLASSES: CarClass[] = [
+  { id: 'interceptor', label: 'Ржавый Перехватчик', desc: 'Сбалансированный', hp: 100, speed: 1, turn: 1, mass: 1, ram: 1, scale: 1.7 },
+  { id: 'hauler', label: 'Боевая Фура', desc: 'Много брони, тяжёлая, медленная', hp: 150, speed: 0.91, turn: 0.85, mass: 1.7, ram: 1.3, scale: 1.95 },
+  { id: 'flea', label: 'Песчаная Блоха', desc: 'Быстрая и вёрткая, но хрупкая', hp: 70, speed: 1.09, turn: 1.15, mass: 0.7, ram: 0.8, scale: 1.5 },
+  { id: 'hearse', label: 'Шипастый Катафалк', desc: 'Таран бьёт вдвое сильнее', hp: 115, speed: 0.96, turn: 0.95, mass: 1.25, ram: 2, scale: 1.75 },
+];

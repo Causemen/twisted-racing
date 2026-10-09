@@ -364,8 +364,8 @@ export class Combat {
       car.weapon = 'mine';
       car.ammo = 3;
       label = 'Мины ×3';
-    } else if (roll < 0.85 && car.hp < CONFIG.car.hp) {
-      car.hp = Math.min(CONFIG.car.hp, car.hp + CONFIG.repairAmount);
+    } else if (roll < 0.85 && car.hp < car.cls.hp) {
+      car.hp = Math.min(car.cls.hp, car.hp + CONFIG.repairAmount);
       label = 'Ремонт';
     } else {
       car.nitro = 1;
