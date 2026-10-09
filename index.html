@@ -149,6 +149,37 @@
     .chip b { font-size: 17px; }
     #minimap { width: 96px; height: 96px; }
   }
+  .card { touch-action: pan-y; }
+  body.touch .keys { display: none; }
+  /* Телефон в альбомной ориентации: экран низкий, интерфейс ужимаем, чтобы было видно трассу */
+  @media (max-height: 500px) {
+    .top { top: max(6px, env(safe-area-inset-top)); left: max(8px, env(safe-area-inset-left)); right: max(8px, env(safe-area-inset-right)); gap: 4px; }
+    .chip { padding: 2px 6px; font-size: 9px; border-radius: 6px; }
+    .chip b { font-size: 14px; }
+    #minimap { width: 76px; height: 76px; }
+    .bottom, body.touch .bottom { top: calc(max(6px, env(safe-area-inset-top)) + 40px); bottom: auto; left: max(8px, env(safe-area-inset-left)); width: 140px; padding: 4px 8px; border-radius: 8px; }
+    .row, body.touch .row { margin: 1px 0; font-size: 9px; gap: 5px; }
+    .row span { width: 44px; }
+    .bar { height: 6px; }
+    #weapon { font-size: 11px; }
+    .mute-wrap { top: calc(max(6px, env(safe-area-inset-top)) + 84px); right: max(8px, env(safe-area-inset-right)); display: flex; gap: 4px; }
+    #mute, #quit { margin: 0; font-size: 10px; padding: 3px 6px; }
+    #feed, body.touch #feed { top: 116px; left: max(8px, env(safe-area-inset-left)); font-size: 11px; }
+    #countdown { font-size: 56px; }
+    #toast { font-size: 18px; }
+    #dead { font-size: 15px; }
+    #touch .pad { bottom: max(8px, env(safe-area-inset-bottom)); gap: 8px; }
+    #touch .left { left: max(10px, env(safe-area-inset-left)); }
+    #touch .right { right: max(10px, env(safe-area-inset-right)); width: 128px; gap: 6px; }
+    #touch button { width: 66px; height: 66px; font-size: 12px; }
+    #touch .right button { width: 58px; height: 58px; font-size: 9px; }
+    .card { padding: 12px; width: min(760px, 100%); }
+    .card h1 { font-size: 30px; } .card h2 { margin-bottom: 6px; font-size: 20px; }
+    #trk, #car { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+    .trk, .car { padding: 5px 8px; }
+    .trk small { display: none; }
+    .go { font-size: 18px; padding: 8px 28px; }
+  }
 </style>
 </head>
 <body>

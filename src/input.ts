@@ -11,6 +11,18 @@ window.addEventListener('keydown', (e) => {
 window.addEventListener('keyup', (e) => keys.delete(e.code));
 window.addEventListener('blur', () => keys.clear());
 
+// iOS Safari игнорирует user-scalable=no: гасим приближение двойным тапом и щипком вручную
+let lastTouchEnd = 0;
+document.addEventListener('touchend', (e) => {
+  const now = performance.now();
+  if (now - lastTouchEnd < 350) e.preventDefault();
+  lastTouchEnd = now;
+}, { passive: false });
+document.addEventListener('touchmove', (e) => {
+  if (e.touches.length > 1) e.preventDefault();
+}, { passive: false });
+for (const ev of ['gesturestart', 'gesturechange', 'dblclick']) document.addEventListener(ev, (e) => e.preventDefault(), { passive: false });
+
 // ЛКМ тоже стреляет: многие клавиатуры не ловят Пробел вместе с двумя стрелками
 let mouseFire = false;
 window.addEventListener('mousedown', (e) => {
