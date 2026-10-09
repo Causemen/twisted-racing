@@ -1,22 +1,18 @@
-import { CAR_CLASSES, CONFIG, type CarClassId } from './config';
+
 import type { Car } from './car';
-import { TRACKS, type Track } from './track';
+import type { Track } from './track';
+import type { RaceResult } from './race';
 
 const $ = (id: string) => document.getElementById(id)!;
 
 export class Hud {
-  onStart: () => void = () => {};
-  selectedClass: CarClassId = 'interceptor';
-  selectedTrack = TRACKS[0].id;
+  laps = 3;
   private map = $('minimap') as HTMLCanvasElement;
   private mapCtx = this.map.getContext('2d')!;
   private bounds = { minX: 0, maxX: 0, minZ: 0, maxZ: 0 };
   private toastTimer = 0;
 
   constructor(private cars: Car[], private track: Track) {
-    $('start-btn').addEventListener('click', () => this.onStart());
-    this.buildCarSelect();
-    this.buildTrackSelect();
     this.setTrack(track);
   }
 
@@ -26,46 +22,6 @@ export class Hud {
     const xs = track.samples.map((s) => s.p.z - s.p.x);
     const zs = track.samples.map((s) => -(s.p.x + s.p.z));
     this.bounds = { minX: Math.min(...xs), maxX: Math.max(...xs), minZ: Math.min(...zs), maxZ: Math.max(...zs) };
-  }
-
-  private buildTrackSelect() {
-    const box = $('track-select');
-    box.innerHTML = TRACKS.map(
-      (t) => `<button type="button" class="trk" data-id="${t.id}"><b>${t.label}</b><small>${t.desc}</small></button>`,
-    ).join('');
-    const sync = () => box.querySelectorAll<HTMLElement>('.trk').forEach((b) => b.classList.toggle('on', b.dataset.id === this.selectedTrack));
-    box.querySelectorAll<HTMLElement>('.trk').forEach((b) =>
-      b.addEventListener('click', () => {
-        this.selectedTrack = b.dataset.id!;
-        sync();
-      }),
-    );
-    sync();
-  }
-
-  private buildCarSelect() {
-    const box = $('car-select');
-    const colors: Record<CarClassId, string> = { interceptor: '#8a4fc0', hearse: '#b03a20', flea: '#6f8a3a', hauler: '#c9a227' };
-    const bar = (label: string, v: number) => `<div class="stat"><span>${label}</span><i style="--v:${Math.round(v * 100)}%"></i></div>`;
-    box.innerHTML = CAR_CLASSES.map(
-      (c) => `<button type="button" class="car" data-id="${c.id}" style="--car:${colors[c.id]}">
-        <b>${c.label}</b><small>${c.desc}</small>
-        ${bar('Броня', c.hp / 150)}${bar('Скорость', (c.speed - 0.8) / 0.3)}${bar('Руль', (c.turn - 0.7) / 0.45)}${bar('Таран', c.ram / 2)}
-      </button>`,
-    ).join('');
-    const sync = () => box.querySelectorAll<HTMLElement>('.car').forEach((b) => b.classList.toggle('on', b.dataset.id === this.selectedClass));
-    box.querySelectorAll<HTMLElement>('.car').forEach((b) =>
-      b.addEventListener('click', () => {
-        this.selectedClass = b.dataset.id as CarClassId;
-        sync();
-      }),
-    );
-    sync();
-  }
-
-  menu() {
-    $('overlay').hidden = false;
-    $('hud').hidden = true;
   }
 
   hideOverlay() {
@@ -97,7 +53,7 @@ export class Hud {
     this.toastTimer = window.setTimeout(() => (el.hidden = true), 1400);
   }
 
-  private standings() {
+  standings() {
     const N = this.track.N;
     return [...this.cars].sort((a, b) => {
       if (a.finished && b.finished) return a.finishTime - b.finishTime;
@@ -109,11 +65,11 @@ export class Hud {
   update(player: Car, time: number) {
     const order = this.standings();
     const place = order.indexOf(player) + 1;
-    $('lap').textContent = `${Math.min(Math.max(player.lap, 1), CONFIG.laps)}/${CONFIG.laps}`;
+    $('lap').textContent = `${Math.min(Math.max(player.lap, 1), this.laps)}/${this.laps}`;
     $('place').textContent = `${place}/${this.cars.length}`;
     $('kills').textContent = String(player.kills);
     $('time').textContent = formatTime(time);
-    ($('hp') as HTMLElement).style.width = `${(player.hp / player.cls.hp) * 100}%`;
+    ($('hp') as HTMLElement).style.width = `${(player.hp / player.maxHp) * 100}%`;
     $('hp').classList.toggle('low', player.hp < 30);
     ($('heat') as HTMLElement).style.width = `${Math.min(1, player.heat) * 100}%`;
     $('heat').classList.toggle('over', player.overheated);
@@ -125,19 +81,14 @@ export class Hud {
     this.drawMap();
   }
 
-  results(time: number) {
-    const rows = this.standings()
-      .map((c, i) => {
-        const t = c.finished ? formatTime(c.finishTime) : 'не финишировал';
-        return `<tr class="${c.isPlayer ? 'me' : ''}"><td>${i + 1}</td><td>${c.name}</td><td>${t}</td><td>${c.kills}</td></tr>`;
-      })
-      .join('');
-    $('overlay-body').innerHTML = `
-      <h2>Результаты</h2>
-      <table><thead><tr><th>#</th><th>Гонщик</th><th>Время</th><th>Убийства</th></tr></thead><tbody>${rows}</tbody></table>
-      <p class="muted">Время заезда: ${formatTime(time)}</p>`;
-    $('start-btn').textContent = 'Ещё заезд';
-    $('overlay').hidden = false;
+  result(player: Car, time: number): RaceResult {
+    const order = this.standings();
+    return {
+      place: order.indexOf(player) + 1,
+      kills: player.kills,
+      time,
+      standings: order.map((c) => ({ name: c.name, color: c.color, isPlayer: c.isPlayer, finished: c.finished, time: c.finishTime, kills: c.kills })),
+    };
   }
 
   private drawMap() {

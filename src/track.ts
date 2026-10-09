@@ -48,6 +48,62 @@ export const TRACKS: TrackDef[] = [
     seed: 777,
     colors: { ground: 0xe4dccb, shoulder: 0xcfc3a8, road: 0x5a5148, sky: 0xeee4d0, boundary: 0x9c8f7a, rock: 0xa89a84 },
   },
+  {
+    id: 'refinery',
+    label: 'Вечный Факел',
+    desc: 'Нефтезавод: мазут, трубы и шикана',
+    points: [
+      [0, 0], [70, 0], [100, -20], [130, 10], [120, 50], [80, 60], [60, 90],
+      [90, 120], [50, 140], [0, 120], [-20, 80], [10, 50], [-20, 20],
+    ],
+    scale: 1.4,
+    ramps: [0.15, 0.5, 0.82],
+    pickups: [0.1, 0.33, 0.58, 0.88],
+    seed: 4242,
+    colors: { ground: 0x5a4a3c, shoulder: 0x4a3c30, road: 0x2e2a28, sky: 0x8a5a3a, boundary: 0x3a302a, rock: 0x5a4a40 },
+  },
+  {
+    id: 'canyon',
+    label: 'Каньон Гремучих',
+    desc: 'Извилистая дорога между красных скал',
+    points: [
+      [0, 0], [50, -20], [100, 0], [132, 32], [62, 75], [132, 118], [80, 150],
+      [20, 140], [-10, 100], [20, 60], [-30, 40], [-40, 0],
+    ],
+    scale: 1.45,
+    ramps: [0.2, 0.55, 0.85],
+    pickups: [0.12, 0.4, 0.66, 0.92],
+    seed: 9090,
+    colors: { ground: 0xb5603a, shoulder: 0x9a4e2e, road: 0x4a3a34, sky: 0xd98a5a, boundary: 0x8a3e22, rock: 0xa04a2a },
+  },
+  {
+    id: 'deadcity',
+    label: 'Мёртвый Город',
+    desc: 'Прямые углы руин и бетонные завалы',
+    points: [
+      [0, 0], [80, 0], [80, 50], [130, 50], [130, 120], [60, 120], [60, 90],
+      [20, 90], [20, 130], [-40, 130], [-40, 40], [0, 40],
+    ],
+    scale: 1.45,
+    ramps: [0.07, 0.42, 0.74],
+    pickups: [0.2, 0.47, 0.64, 0.9],
+    seed: 5150,
+    colors: { ground: 0x8a8478, shoulder: 0x6e6a62, road: 0x3a3a3c, sky: 0xb0a898, boundary: 0x5a5650, rock: 0x7a766e },
+  },
+  {
+    id: 'highway',
+    label: 'Разбитое Шоссе',
+    desc: 'Быстрый овал по старой трассе',
+    points: [
+      [0, 0], [120, -10], [170, 20], [160, 70], [100, 80], [60, 110],
+      [0, 120], [-50, 90], [-40, 40],
+    ],
+    scale: 1.45,
+    ramps: [0.18, 0.5, 0.78],
+    pickups: [0.1, 0.36, 0.62, 0.9],
+    seed: 3131,
+    colors: { ground: 0xb8a07a, shoulder: 0x8a8070, road: 0x38383c, sky: 0xcdb48a, boundary: 0x6a6258, rock: 0x9a8a70 },
+  },
 ];
 
 const SAMPLE_COUNT = 1200;
