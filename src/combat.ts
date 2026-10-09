@@ -258,7 +258,7 @@ export class Combat {
           const dx = c.pos.x - b.pos.x;
           const dz = c.pos.z - b.pos.z;
           if (dx * dx + dz * dz < (R + 0.4) ** 2 && Math.abs(b.pos.y - (c.y + 1)) < 1.8) {
-            this.damage(c, CONFIG.gun.damage, b.owner);
+            this.damage(c, CONFIG.gun.damage * b.owner.gunMult, b.owner);
             this.particles.sparks(b.pos, 4);
             hit = true;
             break;
@@ -371,8 +371,8 @@ export class Combat {
       car.weapon = 'mine';
       car.ammo = 3;
       label = 'Мины ×3';
-    } else if (roll < 0.85 && car.hp < car.cls.hp) {
-      car.hp = Math.min(car.cls.hp, car.hp + CONFIG.repairAmount);
+    } else if (roll < 0.85 && car.hp < car.maxHp) {
+      car.hp = Math.min(car.maxHp, car.hp + CONFIG.repairAmount);
       label = 'Ремонт';
     } else {
       car.nitro = 1;

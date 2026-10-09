@@ -1,7 +1,10 @@
 import * as THREE from 'three';
-import { CAR_CLASSES, CONFIG, type CarClassId } from './config';
+import { CAR_CLASSES, CONFIG } from './config';
 import { Car } from './car';
-import { Bot, type BotStyle } from './bot';
+import { Bot } from './bot';
+import { Ui } from './ui';
+import type { RaceConfig, RaceEntry } from './race';
+import { HOST, HOST_LINES } from './campaign';
 import { Combat } from './combat';
 import { Particles } from './particles';
 import { Track, TRACKS } from './track';
@@ -81,37 +84,29 @@ const skids = new SkidMarks();
 scene.add(skids.mesh);
 const flashes = new Flashes(scene);
 
-// Машина и цвет закреплены за классом; игрок выбирает класс, остальные достаются ботам
-const MODELS: Record<CarClassId, { model: string; color: number }> = {
-  interceptor: { model: truckPurple, color: 0x8a4fc0 },
-  hearse: { model: truckRed, color: 0xb03a20 },
-  flea: { model: truckGreen, color: 0x6f8a3a },
-  hauler: { model: truckYellow, color: 0xc9a227 },
-};
-const BOT_SPECS: { name: string; style: BotStyle; aim: number; speed: number }[] = [
-  { name: 'Бешеный Пёс', style: 'brawler', aim: 0.7, speed: 0.97 },
-  { name: 'Ржавая Вдова', style: 'racer', aim: 0.5, speed: 1.0 },
-  { name: 'Поп-Минёр', style: 'miner', aim: 0.4, speed: 0.95 },
-];
+const MODEL_URLS = { purple: truckPurple, red: truckRed, green: truckGreen, yellow: truckYellow };
 
 const cars: Car[] = [];
 let bots: Bot[] = [];
 let player!: Car;
+const lines = new Map<Car, RaceEntry['lines']>();
 
-function setupCars(playerClass: CarClassId) {
+function setupCars(entries: RaceEntry[]) {
   for (const c of cars) scene.remove(c.mesh);
   cars.length = 0;
-  const order = [CAR_CLASSES.find((c) => c.id === playerClass)!, ...CAR_CLASSES.filter((c) => c.id !== playerClass)];
-  order.forEach((cls, i) => {
-    const bot = BOT_SPECS[i - 1];
-    const m = MODELS[cls.id];
-    cars.push(new Car({ name: bot ? bot.name : 'Ты', color: m.color, isPlayer: i === 0, speedMult: bot?.speed ?? 1, model: m.model, cls }));
-  });
-  for (const c of cars) scene.add(c.mesh);
-  player = cars[0];
-  bots = cars.slice(1).map((c, i) => new Bot(c, BOT_SPECS[i].style, BOT_SPECS[i].aim));
+  lines.clear();
+  bots = [];
+  for (const e of entries) {
+    const cls = CAR_CLASSES.find((c) => c.id === e.cls)!;
+    const car = new Car({ name: e.name, color: cls.color, isPlayer: !!e.isPlayer, speedMult: e.speed ?? 1, model: MODEL_URLS[cls.model], cls, mods: e.mods });
+    cars.push(car);
+    scene.add(car.mesh);
+    if (e.lines) lines.set(car, e.lines);
+    if (!e.isPlayer) bots.push(new Bot(car, e.style ?? 'racer', e.aim ?? 0.5));
+  }
+  player = cars.find((c) => c.isPlayer)!;
 }
-setupCars('interceptor');
+setupCars([{ name: 'Ты', cls: 'interceptor', isPlayer: true }]);
 
 const hud = new Hud(cars, track);
 
@@ -119,6 +114,11 @@ const combat = new Combat(scene, cars, particles, track, {
   onKill(victim, killer) {
     if (killer) hud.feed(`${killer.name} уничтожил ${victim === player ? 'тебя' : victim.name}`, killer === player);
     else hud.feed(`${victim.name} разбился`);
+    const vl = lines.get(victim);
+    const kl = killer ? lines.get(killer) : undefined;
+    if (vl?.killed) hud.feed(`${vl.speaker}: «${vl.killed}»`);
+    else if (kl?.hitPlayer && victim === player) hud.feed(`${kl.speaker}: «${kl.hitPlayer}»`);
+    else if (Math.random() < 0.35) hud.feed(`${HOST}: «${HOST_LINES.kill[Math.floor(Math.random() * HOST_LINES.kill.length)]}»`);
   },
   onBlast(pos, power) {
     flashes.flash(pos, power);
@@ -160,12 +160,12 @@ function placeOnGrid() {
     c.y = c.vy = 0;
     c.idx = idx;
     c.lap = 0;
-    c.hp = c.cls.hp;
+    c.hp = c.maxHp;
     c.alive = true;
     c.finished = false;
     c.kills = c.deaths = 0;
-    c.weapon = null;
-    c.ammo = 0;
+    c.weapon = c.cls.startMines ? 'mine' : null;
+    c.ammo = c.cls.startMines ?? 0;
     c.heat = 0;
     c.nitro = 1;
     c.nitroActive = 0;
@@ -175,10 +175,16 @@ function placeOnGrid() {
   });
 }
 
-function startRace() {
+let laps = CONFIG.laps;
+let lastLapAnnounced = false;
+
+function startRace(cfg: RaceConfig) {
   void initAudio();
-  loadTrack(hud.selectedTrack);
-  setupCars(hud.selectedClass);
+  loadTrack(cfg.track);
+  setupCars(cfg.entries);
+  laps = cfg.laps;
+  hud.laps = laps;
+  lastLapAnnounced = false;
   combat.reset();
   skids.clear();
   placeOnGrid();
@@ -188,7 +194,17 @@ function startRace() {
   hud.hideOverlay();
 }
 
-hud.onStart = startRace;
+const ui = new Ui(startRace);
+
+function abortRace() {
+  if (state === 'menu') return;
+  state = 'menu';
+  ui.aborted();
+}
+window.addEventListener('keydown', (e) => {
+  if (e.code === 'Escape') abortRace();
+});
+document.getElementById('quit')!.addEventListener('click', abortRace);
 const muteBtn = document.getElementById('mute')!;
 const syncMute = () => (muteBtn.textContent = isMuted() ? 'Звук выкл' : 'Звук вкл');
 syncMute();
@@ -212,7 +228,7 @@ function respawn(c: Car) {
   c.heading = Math.atan2(s.t.x, s.t.z);
   c.vel.set(0, 0, 0);
   c.y = c.vy = 0;
-  c.hp = c.cls.hp;
+  c.hp = c.maxHp;
   c.alive = true;
   c.invuln = CONFIG.invulnTime;
   c.lastHitBy = null;
@@ -234,7 +250,7 @@ function physics(c: Car, dt: number) {
   if (prev > N * 0.75 && c.idx < N * 0.25) c.lap++;
   else if (prev < N * 0.25 && c.idx > N * 0.75) c.lap--;
 
-  if (!c.finished && c.lap > CONFIG.laps) {
+  if (!c.finished && c.lap > laps) {
     c.finished = true;
     c.finishTime = raceTime;
     if (c === player) hud.feed('Финиш!', true);
@@ -370,6 +386,10 @@ function step(dt: number) {
   if (running) {
     raceTime += dt;
     if (!player.finished) readInput(player.input);
+    if (!lastLapAnnounced && player.lap === laps && laps > 1) {
+      lastLapAnnounced = true;
+      hud.feed(`${HOST}: «${HOST_LINES.lastLap}»`, true);
+    }
     else Object.assign(player.input, { throttle: 0.4, steer: 0, fire: false, alt: false, nitro: false });
     for (const b of bots) b.think(dt, track, cars, combat);
     rubberBand();
@@ -381,7 +401,13 @@ function step(dt: number) {
     combat.update(dt);
     if (state === 'race' && player.finished) {
       state = 'finished';
-      setTimeout(() => hud.results(raceTime), 1500);
+      const result = hud.result(player, raceTime);
+      setTimeout(() => {
+        if (state === 'finished') {
+          state = 'menu';
+          ui.finished(result);
+        }
+      }, 1500);
     }
   }
   particles.update(dt);
@@ -415,6 +441,11 @@ function frame() {
   requestAnimationFrame(frame);
 }
 
+// Отладка для автотестов: досрочно засчитать финиш игроку
+(window as unknown as Record<string, unknown>).__forceFinish = () => {
+  player.lap = laps + 1;
+};
+
 // Отладка: прокрутить симуляцию вперёд без отрисовки (для автотестов)
 (window as unknown as Record<string, unknown>).__advance = (seconds: number) => {
   for (let t = 0; t < seconds; t += 1 / 60) step(1 / 60);
@@ -423,5 +454,5 @@ function frame() {
 
 placeOnGrid();
 camTarget.copy(player.pos);
-hud.menu();
+ui.main();
 frame();

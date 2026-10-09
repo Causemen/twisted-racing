@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { CONFIG, type CarClass } from './config';
+import { CONFIG, NO_MODS, type CarClass, type CarMods } from './config';
 import { loadModel } from './assets';
 
 export interface CarInput {
@@ -19,6 +19,7 @@ export interface CarSpec {
   speedMult?: number;
   model?: string;
   cls: CarClass;
+  mods?: CarMods;
 }
 
 const C = CONFIG.car;
@@ -38,6 +39,9 @@ export class Car {
   vy = 0;
 
   readonly cls: CarClass;
+  readonly maxHp: number;
+  readonly turnMult: number;
+  readonly gunMult: number;
   hp: number;
   alive = true;
   respawnTimer = 0;
@@ -70,8 +74,12 @@ export class Car {
     this.isPlayer = spec.isPlayer;
     this.color = spec.color;
     this.cls = spec.cls;
-    this.hp = spec.cls.hp;
-    this.baseSpeedMult = this.speedMult = (spec.speedMult ?? 1) * spec.cls.speed;
+    const mods = spec.mods ?? NO_MODS;
+    this.maxHp = Math.round(spec.cls.hp * mods.hp);
+    this.hp = this.maxHp;
+    this.turnMult = spec.cls.turn * mods.turn;
+    this.gunMult = spec.cls.gun * mods.gun;
+    this.baseSpeedMult = this.speedMult = (spec.speedMult ?? 1) * spec.cls.speed * mods.speed;
     this.buildMesh();
     if (spec.model) void this.useModel(spec.model);
   }
@@ -88,7 +96,7 @@ export class Car {
       const m = o as THREE.Mesh;
       if (m.isMesh) {
         const mat = (m.material as THREE.MeshStandardMaterial).clone();
-        mat.color.setRGB(0.86, 0.76, 0.66); // выгоревшая краска
+        mat.color.setRGB(...this.cls.tint); // перекраска под банду
         mat.roughness = 0.95;
         m.material = mat;
       }
@@ -191,7 +199,7 @@ export class Car {
       this.vel.copy(f).multiplyScalar(vf).addScaledVector(r, vl);
 
       const turnScale = THREE.MathUtils.clamp(vf / 4, -1, 1);
-      this.heading -= steer * C.turnRate * this.cls.turn * turnScale * dt;
+      this.heading -= steer * C.turnRate * this.turnMult * turnScale * dt;
     } else {
       this.vy -= CONFIG.gravity * dt;
       this.vel.multiplyScalar(Math.exp(-0.1 * dt));
