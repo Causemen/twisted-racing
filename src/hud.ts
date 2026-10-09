@@ -1,4 +1,4 @@
-import { CONFIG } from './config';
+import { CAR_CLASSES, CONFIG, type CarClassId } from './config';
 import type { Car } from './car';
 import type { Track } from './track';
 
@@ -6,6 +6,7 @@ const $ = (id: string) => document.getElementById(id)!;
 
 export class Hud {
   onStart: () => void = () => {};
+  selectedClass: CarClassId = 'interceptor';
   private map = $('minimap') as HTMLCanvasElement;
   private mapCtx = this.map.getContext('2d')!;
   private bounds = { minX: 0, maxX: 0, minZ: 0, maxZ: 0 };
@@ -13,10 +14,31 @@ export class Hud {
 
   constructor(private cars: Car[], private track: Track) {
     $('start-btn').addEventListener('click', () => this.onStart());
+    this.buildCarSelect();
     // Повернуть карту так же, как камера: экран-вправо = (-x+z), экран-вверх = (x+z)
     const xs = track.samples.map((s) => s.p.z - s.p.x);
     const zs = track.samples.map((s) => -(s.p.x + s.p.z));
     this.bounds = { minX: Math.min(...xs), maxX: Math.max(...xs), minZ: Math.min(...zs), maxZ: Math.max(...zs) };
+  }
+
+  private buildCarSelect() {
+    const box = $('car-select');
+    const colors: Record<CarClassId, string> = { interceptor: '#8a4fc0', hearse: '#b03a20', flea: '#6f8a3a', hauler: '#c9a227' };
+    const bar = (label: string, v: number) => `<div class="stat"><span>${label}</span><i style="--v:${Math.round(v * 100)}%"></i></div>`;
+    box.innerHTML = CAR_CLASSES.map(
+      (c) => `<button type="button" class="car" data-id="${c.id}" style="--car:${colors[c.id]}">
+        <b>${c.label}</b><small>${c.desc}</small>
+        ${bar('Броня', c.hp / 150)}${bar('Скорость', (c.speed - 0.8) / 0.3)}${bar('Руль', (c.turn - 0.7) / 0.45)}${bar('Таран', c.ram / 2)}
+      </button>`,
+    ).join('');
+    const sync = () => box.querySelectorAll<HTMLElement>('.car').forEach((b) => b.classList.toggle('on', b.dataset.id === this.selectedClass));
+    box.querySelectorAll<HTMLElement>('.car').forEach((b) =>
+      b.addEventListener('click', () => {
+        this.selectedClass = b.dataset.id as CarClassId;
+        sync();
+      }),
+    );
+    sync();
   }
 
   menu() {
@@ -69,7 +91,7 @@ export class Hud {
     $('place').textContent = `${place}/${this.cars.length}`;
     $('kills').textContent = String(player.kills);
     $('time').textContent = formatTime(time);
-    ($('hp') as HTMLElement).style.width = `${(player.hp / CONFIG.car.hp) * 100}%`;
+    ($('hp') as HTMLElement).style.width = `${(player.hp / player.cls.hp) * 100}%`;
     $('hp').classList.toggle('low', player.hp < 30);
     ($('heat') as HTMLElement).style.width = `${Math.min(1, player.heat) * 100}%`;
     $('heat').classList.toggle('over', player.overheated);

@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { CONFIG } from './config';
+import { CONFIG, type CarClass } from './config';
 import { loadModel } from './assets';
 
 export interface CarInput {
@@ -18,6 +18,7 @@ export interface CarSpec {
   isPlayer: boolean;
   speedMult?: number;
   model?: string;
+  cls: CarClass;
 }
 
 const C = CONFIG.car;
@@ -36,7 +37,8 @@ export class Car {
   y = 0;
   vy = 0;
 
-  hp: number = C.hp;
+  readonly cls: CarClass;
+  hp: number;
   alive = true;
   respawnTimer = 0;
   invuln = 0;
@@ -67,7 +69,9 @@ export class Car {
     this.name = spec.name;
     this.isPlayer = spec.isPlayer;
     this.color = spec.color;
-    this.baseSpeedMult = this.speedMult = spec.speedMult ?? 1;
+    this.cls = spec.cls;
+    this.hp = spec.cls.hp;
+    this.baseSpeedMult = this.speedMult = (spec.speedMult ?? 1) * spec.cls.speed;
     this.buildMesh();
     if (spec.model) void this.useModel(spec.model);
   }
@@ -119,7 +123,7 @@ export class Car {
       p.rotation.x = -0.35;
     }
 
-    model.scale.setScalar(1.7);
+    model.scale.setScalar(this.cls.scale);
     this.wheels = model.children.filter((c) => c.name.startsWith('wheel'));
     this.body.clear();
     this.body.add(model);
@@ -187,7 +191,7 @@ export class Car {
       this.vel.copy(f).multiplyScalar(vf).addScaledVector(r, vl);
 
       const turnScale = THREE.MathUtils.clamp(vf / 4, -1, 1);
-      this.heading -= steer * C.turnRate * turnScale * dt;
+      this.heading -= steer * C.turnRate * this.cls.turn * turnScale * dt;
     } else {
       this.vy -= CONFIG.gravity * dt;
       this.vel.multiplyScalar(Math.exp(-0.1 * dt));

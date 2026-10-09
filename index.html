@@ -54,7 +54,7 @@
   #dead { position: absolute; left: 50%; top: 40%; transform: translateX(-50%); font-size: 22px; color: var(--hp); text-shadow: 0 2px 0 #000; white-space: nowrap; }
 
   #overlay { position: fixed; inset: 0; display: grid; place-items: center; background: rgba(20, 12, 8, 0.6); padding: 16px; }
-  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 24px; width: min(460px, 100%); text-align: center; backdrop-filter: blur(4px); }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 20px; width: min(560px, 100%); max-height: 100%; overflow-y: auto; text-align: center; backdrop-filter: blur(4px); }
   h1 { margin: 0 0 4px; font-size: clamp(34px, 9vw, 52px); font-weight: 400; color: var(--sand); letter-spacing: 1px; text-shadow: 0 3px 0 #6a2a10; }
   h2 { margin: 0 0 12px; font-weight: 400; color: var(--sand); }
   .muted { color: var(--muted); font-size: 14px; line-height: 1.5; }
@@ -64,9 +64,21 @@
   td, th { padding: 6px; border-bottom: 1px solid var(--line); text-align: left; }
   th { color: var(--muted); font-weight: 400; font-size: 12px; }
   tr.me td { color: var(--sand); }
+  #car-select { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin: 12px 0 4px; }
+  .car { font-family: inherit; text-align: left; color: var(--ink); background: rgba(255,255,255,0.04); border: 2px solid var(--line); border-left: 6px solid var(--car); border-radius: 10px; padding: 8px 10px; cursor: pointer; display: grid; gap: 3px; }
+  .car b { font-weight: 400; font-size: 15px; }
+  .car small { color: var(--muted); font-size: 11px; font-family: system-ui, sans-serif; margin-bottom: 2px; }
+  .car.on { border-color: var(--sand); border-left-color: var(--car); background: rgba(227,178,95,0.12); }
+  .car:focus-visible { outline: 2px solid var(--sand); outline-offset: 2px; }
+  .stat { display: flex; align-items: center; gap: 6px; font-size: 10px; color: var(--muted); }
+  .stat span { width: 58px; }
+  .stat i { flex: 1; height: 5px; border-radius: 3px; background: linear-gradient(90deg, var(--sand) var(--v), rgba(255,255,255,0.1) var(--v)); }
+  .keys { margin: 10px 0; }
+  @media (max-width: 420px) { .card { padding: 14px; } .keys { display: none; } }
   #start-btn { margin-top: 8px; font-family: inherit; font-size: 22px; padding: 12px 36px; border: 0; border-radius: 10px; background: var(--rust); color: #fff; cursor: pointer; box-shadow: 0 4px 0 #6a2a10; }
   #start-btn:active { transform: translateY(2px); box-shadow: 0 2px 0 #6a2a10; }
 
+  body:has(#overlay:not([hidden])) #touch { display: none; }
   #touch { position: fixed; inset: auto 0 0 0; height: 0; }
   #touch .pad { position: fixed; bottom: max(16px, env(safe-area-inset-bottom)); display: flex; gap: 10px; }
   #touch .left { left: 16px; } #touch .right { right: 16px; flex-wrap: wrap; width: 190px; justify-content: flex-end; }
@@ -127,7 +139,7 @@
   <div class="card">
     <div id="overlay-body">
       <h1>TWISTED RACING</h1>
-      <p class="muted">Версия 0.3. Три круга по пустоши, три бешеных соперника. Доедь первым, а кто мешает — взорви.</p>
+      <p class="muted">Версия 0.4. Три круга по пустоши, три бешеных соперника. Доедь первым, а кто мешает — взорви.</p>
       <div class="keys">
         <div><kbd>WASD</kbd> или стрелки — руль, газ, тормоз</div>
         <div><kbd>Пробел</kbd>, <kbd>X</kbd> или левая кнопка мыши — пулемёт (следи за перегревом)</div>
@@ -136,6 +148,7 @@
         <div>На телефоне газ автоматический, кнопки на экране.</div>
       </div>
     </div>
+    <div id="car-select" aria-label="Выбор машины"></div>
     <button id="start-btn">Старт</button>
   </div>
 </div>
