@@ -29,6 +29,13 @@ const KEYS_HTML = `<div class="keys">
   <div><kbd>Shift</kbd> — ракеты или мины, <kbd>E</kbd> — нитро, <kbd>M</kbd> — звук, <kbd>Esc</kbd> — выйти из гонки</div>
 </div>`;
 
+// Портрет говорящего: главарь банды или ведущий
+function faceOf(speaker: string) {
+  if (speaker === C.HOST) return 'art/face-host.webp';
+  const g = C.GANGS.find((x) => x.leader === speaker);
+  return g ? `art/face-${g.id}.webp` : '';
+}
+
 const MENU_LINES = [
   'Добрый вечер, пустошь! С вами Жорж Блеск и шесть банд, которые очень хотят вас переехать.',
   'Сегодня в эфире: гонки, взрывы и розыгрыш бесплатного гроба!',
@@ -60,7 +67,8 @@ export class Ui {
   }
 
   private quote(speaker: string, text: string) {
-    return `<figure class="quote"><blockquote>«${esc(text)}»</blockquote><figcaption>${esc(speaker)}</figcaption></figure>`;
+    const face = faceOf(speaker);
+    return `<figure class="quote${face ? ' has-face' : ''}">${face ? `<img src="${face}" alt="">` : ''}<div><blockquote>«${esc(text)}»</blockquote><figcaption>${esc(speaker)}</figcaption></div></figure>`;
   }
 
   // ---------- Главное меню ----------
@@ -207,27 +215,36 @@ export class Ui {
   private gangSelect() {
     this.show(`
       <div class="head"><button type="button" class="back" data-act="back">← Меню</button><h2>Выбери банду</h2></div>
-      <p class="muted">Ты новичок без имени. Главарь банды станет наставником и даст машину. Свой Источник ты не захватываешь, остальные пять придётся брать гонками.</p>
-      <div class="grid2">${C.GANGS.map((g) => {
+      <p class="muted">Ты новичок без имени. Главарь станет наставником и даст машину. Свой Источник ты не захватываешь, остальные пять придётся брать гонками.</p>
+      <div class="gangs">${C.GANGS.map((g) => {
         const k = cls(g.cls);
         return `<button type="button" class="gang" data-id="${g.id}" style="--car:${g.color}">
-          <b>${g.name}</b><small>Главарь: ${g.leader}</small><small>Машина: ${k.label}</small><small>Территория: ${trackLabel(g.track)}</small><em>«${g.motto}»</em></button>`;
+          <img src="art/leader-${g.id}.webp" alt="">
+          <span class="gang-body"><b>${esc(g.name)}</b><small class="lead">${esc(g.leader)}</small>
+          <small>${esc(k.label)} · ${esc(trackLabel(g.track))}</small><em>«${esc(g.motto)}»</em></span></button>`;
       }).join('')}</div>`);
     this.on('[data-act="back"]', () => this.main());
-    this.on('.gang', (b) => {
-      const g = C.gang(b.dataset.id as C.GangId);
-      this.show(`
-        <h2>${esc(g.name)}</h2>
-        ${this.quote(g.leader, g.lines.intro)}
-        <p class="muted">Твоя машина: ${cls(g.cls).label}. Захвати пять чужих Источников, и по закону Колеса сможешь бросить вызов самому главарю.</p>
-        <div class="row"><button type="button" class="go" data-act="join">Вступить</button><button type="button" class="btn2" data-act="back">Назад</button></div>`);
-      this.on('[data-act="join"]', () => {
-        this.state = C.newCampaign(g.id);
-        C.save(this.state);
-        this.map();
-      });
-      this.on('[data-act="back"]', () => this.gangSelect());
+    this.on('.gang', (b) => this.gangJoin(C.gang(b.dataset.id as C.GangId)));
+  }
+
+  private gangJoin(g: C.Gang) {
+    const k = cls(g.cls);
+    this.show(`
+      <div class="head"><button type="button" class="back" data-act="back">← Банды</button><h2>${esc(g.name)}</h2></div>
+      <div class="join" style="--car:${g.color}">
+        <img src="art/leader-${g.id}.webp" alt="${esc(g.leader)}">
+        <div class="join-text">
+          <div class="bubble"><b>${esc(g.leader)}</b><span>${esc(g.lines.intro)}</span></div>
+          <p class="muted">Твоя машина: <b class="hl">${esc(k.label)}</b>. Территория: ${esc(trackLabel(g.track))}, вышка «${esc(g.tower)}». Захвати пять чужих Источников, и по закону Колеса сможешь бросить вызов самому главарю.</p>
+          <div class="row"><button type="button" class="go" data-act="join">Вступить</button><button type="button" class="btn2" data-act="back">Другая банда</button></div>
+        </div>
+      </div>`);
+    this.on('[data-act="join"]', () => {
+      this.state = C.newCampaign(g.id);
+      C.save(this.state);
+      this.map();
     });
+    this.on('[data-act="back"]', () => this.gangSelect());
   }
 
   private map() {
@@ -243,12 +260,12 @@ export class Ui {
       const status =
         s.raid === id ? '<span class="tag warn">Налёт!</span>' : t.tower === 'active' ? '<span class="tag ok">Вышка твоя</span>' : t.tower === 'idle' ? '<span class="tag bad">Простой</span>' : '';
       const label = { territory: `Гонка ${t.progress + 1}`, boss: `Босс: ${g.leader}`, farm: 'Гонка за горючку', defense: s.raid === id ? 'Гонка-оборона' : 'Отбить вышку', final: '' }[kind];
-      return `<div class="terr" style="--car:${g.color}">
+      return `<div class="terr" style="--car:${g.color}"><img class="tface" src="art/face-${g.id}.webp" alt="">
         <div><b>${g.name}</b> ${status}<small>${trackLabel(g.track)} · вышка «${g.tower}»</small><div class="pips">${pips}</div></div>
         <button type="button" class="${kind === 'defense' || kind === 'boss' ? 'go sm' : 'btn2 sm'}" data-race="${id}">${label}</button></div>`;
     });
     const fin = C.finalUnlocked(s)
-      ? `<div class="terr final" style="--car:${mine.color}"><div><b>Вызов наставнику</b><small>${mine.leader}, ${trackLabel(mine.track)}, один на один</small></div>
+      ? `<div class="terr final" style="--car:${mine.color}"><img class="tface" src="art/face-${mine.id}.webp" alt=""><div><b>Вызов наставнику</b><small>${mine.leader}, ${trackLabel(mine.track)}, один на один</small></div>
          <button type="button" class="go sm" data-final="1">${s.finalWon ? 'Ещё раз' : 'Бросить вызов'}</button></div>`
       : `<p class="muted small">Вызов наставнику откроется после пяти захваченных Источников.</p>`;
     const raidBanner = s.raid ? this.quote(C.HOST, C.HOST_LINES.raid(C.gang(s.raid).name, C.gang(s.raid).tower) + ' Если поедешь в другую гонку, вышка встанет.') : '';
