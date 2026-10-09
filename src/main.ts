@@ -386,11 +386,11 @@ function step(dt: number) {
   if (running) {
     raceTime += dt;
     if (!player.finished) readInput(player.input);
+    else Object.assign(player.input, { throttle: 0.4, steer: 0, fire: false, alt: false, nitro: false });
     if (!lastLapAnnounced && player.lap === laps && laps > 1) {
       lastLapAnnounced = true;
       hud.feed(`${HOST}: «${HOST_LINES.lastLap}»`, true);
     }
-    else Object.assign(player.input, { throttle: 0.4, steer: 0, fire: false, alt: false, nitro: false });
     for (const b of bots) b.think(dt, track, cars, combat);
     rubberBand();
     for (const c of cars) {
@@ -449,7 +449,7 @@ function frame() {
 // Отладка: прокрутить симуляцию вперёд без отрисовки (для автотестов)
 (window as unknown as Record<string, unknown>).__advance = (seconds: number) => {
   for (let t = 0; t < seconds; t += 1 / 60) step(1 / 60);
-  return cars.map((c) => ({ name: c.name, lap: c.lap, idx: c.idx, hp: Math.round(c.hp), kills: c.kills, deaths: c.deaths, speed: +c.speed.toFixed(1) }));
+  return cars.map((c) => ({ name: c.name, lap: c.lap, idx: c.idx, hp: Math.round(c.hp), kills: c.kills, deaths: c.deaths, speed: +c.speed.toFixed(1), heading: +c.heading.toFixed(2), player: c.isPlayer }));
 };
 
 placeOnGrid();
