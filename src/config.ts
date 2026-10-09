@@ -68,7 +68,7 @@ export const CAR_CLASSES: CarClass[] = [
   { id: 'chariot', label: 'Огненная Колесница', desc: 'Пулемёт бьёт на треть сильнее', hp: 95, speed: 1.0, turn: 1.0, mass: 1, ram: 1, scale: 1.7, gun: 1.35, color: 0xe03020 },
   { id: 'hearse', label: 'Шипастый Катафалк', desc: 'Таран бьёт вдвое сильнее', hp: 115, speed: 0.96, turn: 0.95, mass: 1.25, ram: 2, scale: 1.75, gun: 1, color: 0x8a4fc0 },
   { id: 'pope', label: 'Железный Поп', desc: 'Выезжает с запасом мин', hp: 105, speed: 0.97, turn: 0.97, mass: 1.1, ram: 1, scale: 1.7, gun: 1, startMines: 3, color: 0x6f8a3a },
-  { id: 'hauler', label: 'Боевая Фура', desc: 'Много брони, тяжёлая, медленная', hp: 150, speed: 0.91, turn: 0.85, mass: 1.7, ram: 1.3, scale: 1.95, gun: 1, color: 0x3a6ad0 },
+  { id: 'hauler', label: 'Боевая Фура', desc: 'Много брони, тяжёлая, но держит скорость', hp: 150, speed: 0.96, turn: 0.9, mass: 1.7, ram: 1.3, scale: 1.95, gun: 1, color: 0x3a6ad0 },
 ];
 
 /** Улучшения из гаража кампании, множители поверх класса. */
