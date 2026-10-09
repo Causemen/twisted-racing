@@ -32,7 +32,7 @@ export interface Gang {
 
 export const GANGS: Gang[] = [
   {
-    id: 'rust', name: 'Банда Плюшкиной', leader: 'Гайка', cls: 'interceptor', track: 'junkyard', tower: 'Старая Ворчунья', color: '#d07020', style: 'racer',
+    id: 'rust', name: 'Банда Плюшкиной', leader: 'Гайка Плюшкина', cls: 'interceptor', track: 'junkyard', tower: 'Старая Ворчунья', color: '#d07020', style: 'racer',
     members: ['Болт', 'Шуруп', 'Гнутый', 'Паяльник'], motto: 'Не выбросим, приварим.',
     lines: {
       intro: 'Ой, новенький! Колёса есть, руль есть, тормоза есть? Нет? Отлично, тормоза для трусов. Мамочка, поздоровайся!',
