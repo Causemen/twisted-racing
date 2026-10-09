@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+<title>Twisted Racing</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Russo+One&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --bg: #1a1410;
+    --panel: rgba(28, 20, 15, 0.82);
+    --ink: #f3e6d0;
+    --muted: #b9a58a;
+    --rust: #c4501c;
+    --sand: #e3b25f;
+    --hp: #d8432a;
+    --nitro: #4ea6e8;
+    --heat: #e8a33a;
+    --line: rgba(243, 230, 208, 0.18);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) { --bg: #1a1410; }
+  }
+  :root[data-theme="dark"] { --bg: #1a1410; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; overflow: hidden; background: var(--bg); color: var(--ink);
+    font-family: 'Russo One', system-ui, sans-serif; user-select: none; -webkit-user-select: none; touch-action: none; }
+  #game, #game canvas { position: fixed; inset: 0; width: 100%; height: 100%; display: block; }
+  [hidden] { display: none !important; }
+
+  #hud { position: fixed; inset: 0; pointer-events: none; }
+  .top { position: absolute; top: max(12px, env(safe-area-inset-top)); left: 16px; right: 16px; display: flex; gap: 8px; align-items: flex-start; }
+  .chip { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 6px 10px; font-size: 13px; color: var(--muted); }
+  .chip b { display: block; color: var(--ink); font-size: 22px; font-weight: 400; line-height: 1.1; }
+  #minimap { margin-left: auto; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; width: 132px; height: 132px; }
+  .bottom { position: absolute; left: 16px; bottom: max(14px, env(safe-area-inset-bottom)); width: min(320px, calc(100% - 32px)); background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; }
+  .row { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--muted); margin: 4px 0; }
+  .row span { width: 54px; }
+  .bar { flex: 1; height: 10px; background: rgba(255,255,255,0.08); border-radius: 5px; overflow: hidden; }
+  .bar i { display: block; height: 100%; width: 100%; transition: width .1s; }
+  #hp { background: var(--hp); } #hp.low { animation: blink .4s infinite alternate; }
+  #heat { background: var(--heat); } #heat.over { background: #ff2a10; }
+  #nitro { background: var(--nitro); opacity: .55; } #nitro.ready { opacity: 1; }
+  #weapon { color: var(--sand); font-size: 15px; }
+  @keyframes blink { to { opacity: .35; } }
+  .mute-wrap { position: absolute; right: 16px; top: calc(max(12px, env(safe-area-inset-top)) + 140px); }
+  #mute { pointer-events: auto; font-family: inherit; font-size: 12px; color: var(--muted); background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 4px 8px; cursor: pointer; }
+  @media (max-width: 600px) { .mute-wrap { top: calc(max(12px, env(safe-area-inset-top)) + 104px); } }
+  #feed { position: absolute; top: 90px; left: 16px; font-size: 14px; text-shadow: 0 1px 2px #000; }
+  #feed div { margin: 2px 0; } #feed .hl { color: var(--sand); }
+  #countdown { position: absolute; inset: 0; display: grid; place-items: center; font-size: 96px; color: var(--sand); text-shadow: 0 4px 0 #5a2a10, 0 0 30px rgba(0,0,0,.5); }
+  #toast { position: absolute; left: 50%; top: 28%; transform: translateX(-50%); font-size: 28px; color: var(--sand); text-shadow: 0 2px 0 #000; }
+  #dead { position: absolute; left: 50%; top: 40%; transform: translateX(-50%); font-size: 22px; color: var(--hp); text-shadow: 0 2px 0 #000; white-space: nowrap; }
+
+  #overlay { position: fixed; inset: 0; display: grid; place-items: center; background: rgba(20, 12, 8, 0.6); padding: 16px; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 24px; width: min(460px, 100%); text-align: center; backdrop-filter: blur(4px); }
+  h1 { margin: 0 0 4px; font-size: clamp(34px, 9vw, 52px); font-weight: 400; color: var(--sand); letter-spacing: 1px; text-shadow: 0 3px 0 #6a2a10; }
+  h2 { margin: 0 0 12px; font-weight: 400; color: var(--sand); }
+  .muted { color: var(--muted); font-size: 14px; line-height: 1.5; }
+  .keys { text-align: left; font-size: 14px; color: var(--muted); margin: 16px 0; line-height: 1.8; }
+  kbd { background: rgba(255,255,255,0.1); border: 1px solid var(--line); border-radius: 4px; padding: 1px 6px; color: var(--ink); font-family: inherit; font-size: 12px; }
+  table { width: 100%; border-collapse: collapse; margin: 8px 0; font-size: 15px; }
+  td, th { padding: 6px; border-bottom: 1px solid var(--line); text-align: left; }
+  th { color: var(--muted); font-weight: 400; font-size: 12px; }
+  tr.me td { color: var(--sand); }
+  #start-btn { margin-top: 8px; font-family: inherit; font-size: 22px; padding: 12px 36px; border: 0; border-radius: 10px; background: var(--rust); color: #fff; cursor: pointer; box-shadow: 0 4px 0 #6a2a10; }
+  #start-btn:active { transform: translateY(2px); box-shadow: 0 2px 0 #6a2a10; }
+
+  #touch { position: fixed; inset: auto 0 0 0; height: 0; }
+  #touch .pad { position: fixed; bottom: max(16px, env(safe-area-inset-bottom)); display: flex; gap: 10px; }
+  #touch .left { left: 16px; } #touch .right { right: 16px; flex-wrap: wrap; width: 190px; justify-content: flex-end; }
+  #touch button { pointer-events: auto; width: 84px; height: 84px; border-radius: 50%; border: 2px solid var(--line); background: var(--panel); color: var(--ink); font-family: inherit; font-size: 14px; touch-action: none; }
+  #touch .right button { width: 72px; height: 72px; font-size: 12px; }
+  #touch button.down { background: var(--rust); }
+  body.touch .bottom { top: calc(max(12px, env(safe-area-inset-top)) + 64px); bottom: auto; width: 190px; padding: 6px 10px; }
+  body.touch .row { margin: 2px 0; font-size: 11px; }
+  body.touch #feed { top: 210px; }
+  @media (max-width: 600px) {
+    .top { gap: 5px; left: 10px; right: 10px; }
+    .chip { padding: 4px 7px; font-size: 11px; }
+    .chip b { font-size: 17px; }
+    #minimap { width: 96px; height: 96px; }
+  }
+</style>
+</head>
+<body>
+<div id="game"></div>
+
+<div id="hud" hidden>
+  <div class="top">
+    <div class="chip">Круг<b id="lap">1/3</b></div>
+    <div class="chip">Место<b id="place">1/4</b></div>
+    <div class="chip">Убийства<b id="kills">0</b></div>
+    <div class="chip">Время<b id="time">0:00.0</b></div>
+    <canvas id="minimap" width="132" height="132"></canvas>
+  </div>
+  <div class="mute-wrap">
+    <button id="mute" type="button">Звук вкл</button>
+  </div>
+  <div id="feed"></div>
+  <div id="countdown" hidden></div>
+  <div id="toast" hidden></div>
+  <div id="dead" hidden></div>
+  <div class="bottom">
+    <div class="row"><span>Броня</span><div class="bar"><i id="hp"></i></div></div>
+    <div class="row"><span>Перегрев</span><div class="bar"><i id="heat"></i></div></div>
+    <div class="row"><span>Нитро</span><div class="bar"><i id="nitro"></i></div></div>
+    <div class="row"><span>Оружие</span><b id="weapon">—</b></div>
+  </div>
+</div>
+
+<div id="touch" hidden>
+  <div class="pad left">
+    <button data-btn="left">◀</button>
+    <button data-btn="right">▶</button>
+  </div>
+  <div class="pad right">
+    <button data-btn="nitro">НИТРО</button>
+    <button data-btn="alt">РАКЕТА<br>МИНА</button>
+    <button data-btn="brake">ТОРМОЗ</button>
+    <button data-btn="fire">ОГОНЬ</button>
+  </div>
+</div>
+
+<div id="overlay">
+  <div class="card">
+    <div id="overlay-body">
+      <h1>TWISTED RACING</h1>
+      <p class="muted">Версия 0.3. Три круга по пустоши, три бешеных соперника. Доедь первым, а кто мешает — взорви.</p>
+      <div class="keys">
+        <div><kbd>WASD</kbd> или стрелки — руль, газ, тормоз</div>
+        <div><kbd>Пробел</kbd>, <kbd>X</kbd> или левая кнопка мыши — пулемёт (следи за перегревом)</div>
+        <div><kbd>Shift</kbd> — ракеты или мины из ящиков</div>
+        <div><kbd>E</kbd> — нитро, <kbd>M</kbd> — звук</div>
+        <div>На телефоне газ автоматический, кнопки на экране.</div>
+      </div>
+    </div>
+    <button id="start-btn">Старт</button>
+  </div>
+</div>
+
+<script type="module" src="/src/main.ts"></script>
+</body>
+</html>
