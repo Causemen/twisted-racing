@@ -40,7 +40,7 @@ function resize() {
   const h = window.innerHeight;
   renderer.setSize(w, h);
   const aspect = w / h;
-  const view = aspect < 1 ? 34 : 24; // половина высоты кадра в метрах
+  const view = aspect < 1 ? 38 : 28; // половина высоты кадра в метрах
   camera.left = -view * aspect;
   camera.right = view * aspect;
   camera.top = view;
@@ -96,7 +96,7 @@ function placeOnGrid() {
     const row = Math.floor(i / 2);
     const idx = (N - 8 - row * 7) % N;
     const s = track.samples[idx];
-    c.pos.copy(s.p).addScaledVector(s.n, i % 2 ? 3.5 : -3.5);
+    c.pos.copy(s.p).addScaledVector(s.n, i % 2 ? 4.5 : -4.5);
     c.heading = Math.atan2(s.t.x, s.t.z);
     c.vel.set(0, 0, 0);
     c.y = c.vy = 0;
@@ -165,10 +165,11 @@ function physics(c: Car, dt: number) {
     if (c === player) hud.feed('Финиш!', true);
   }
 
-  // Ограждение
+  // Обочина и внешняя граница
   const s = track.samples[c.idx];
   const off = track.lateral(c.pos, c.idx);
-  const lim = track.width / 2 + 1.1 - CONFIG.car.radius;
+  c.offroad = Math.abs(off) > track.width / 2 + 0.5;
+  const lim = track.width / 2 + track.shoulder - CONFIG.car.radius;
   if (Math.abs(off) > lim) {
     const sign = Math.sign(off);
     c.pos.addScaledVector(s.n, -(off - sign * lim));
@@ -176,17 +177,43 @@ function physics(c: Car, dt: number) {
     if (vn * sign > 0) {
       c.vel.addScaledVector(s.n, -vn * 1.4);
       c.vel.multiplyScalar(0.9);
-      if (Math.abs(vn) > CONFIG.car.wallDamageThreshold) {
-        combat.damage(c, (Math.abs(vn) - CONFIG.car.wallDamageThreshold) * 0.6, null);
-        particles.sparks(c.pos.clone().addScaledVector(s.n, sign * 1.2).setY(0.8), 8);
+      if (Math.abs(vn) > CONFIG.car.wallDamageThreshold) combat.damage(c, (Math.abs(vn) - CONFIG.car.wallDamageThreshold) * 0.6, null);
+    }
+  }
+  if (c.offroad && c.speed > 8 && c.onGround && Math.random() < 0.5) {
+    particles.spawn(c.pos.clone().addScaledVector(c.forward, -1.8).setY(0.3), new THREE.Vector3(0, 1.5, 0), 0.7, 0.6, 0xc89a62, 0xd9b07a, 2);
+  }
+
+  // Препятствия
+  for (const o of track.obstacles) {
+    if (!o.alive || c.y > 1.2) continue;
+    const dx = c.pos.x - o.pos.x;
+    const dz = c.pos.z - o.pos.z;
+    const minD = o.r + CONFIG.car.radius;
+    const d2 = dx * dx + dz * dz;
+    if (d2 >= minD * minD) continue;
+    const d = Math.sqrt(d2) || 1e-3;
+    const n = new THREE.Vector3(dx / d, 0, dz / d);
+    c.pos.addScaledVector(n, minD - d);
+    const vn = c.vel.dot(n);
+    if (vn < 0) {
+      if (o.kind === 'barrel') {
+        combat.destroyObstacle(o, c);
+        continue;
       }
+      c.vel.addScaledVector(n, -vn * 1.35);
+      c.vel.multiplyScalar(0.85);
+      if (-vn > CONFIG.car.wallDamageThreshold) {
+        combat.damage(c, (-vn - CONFIG.car.wallDamageThreshold) * 0.7, null);
+      }
+      if (-vn > 6) particles.sparks(o.pos.clone().addScaledVector(n, o.r).setY(0.8), 8);
     }
   }
 
   // Трамплины
   for (const r of track.ramps) {
     const d = (c.idx - r + N) % N;
-    if (d <= 2 && Math.abs(off) < track.width * 0.31 && c.vel.dot(s.t) > 10) {
+    if (d <= 2 && Math.abs(off) < track.width * 0.21 && c.vel.dot(s.t) > 10) {
       c.launch(c.speed * 0.42);
     }
   }

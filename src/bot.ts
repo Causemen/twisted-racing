@@ -17,7 +17,7 @@ export class Bot {
     readonly style: BotStyle,
     private aim: number, // 0..1, точность
   ) {
-    this.lane = (Math.random() - 0.5) * 6;
+    this.lane = (Math.random() - 0.5) * 10;
   }
 
   think(dt: number, track: Track, cars: Car[], combat: Combat) {
@@ -29,7 +29,25 @@ export class Bot {
     const speed = car.speed;
     const ahead = Math.round((9 + speed * 0.45) / track.spacing);
     const s = track.samples[(car.idx + ahead) % track.N];
-    const lane = this.lane + Math.sin(this.t * 0.3) * 2;
+    const half = track.width / 2 - 2.5;
+    let lane = THREE.MathUtils.clamp(this.lane + Math.sin(this.t * 0.3) * 3, -half, half);
+    // Объезд препятствий впереди
+    const N = track.N;
+    const horizon = Math.round(ahead * 1.6);
+    for (const o of track.obstacles) {
+      if (!o.alive) continue;
+      const d = (o.idx - car.idx + N) % N;
+      if (d <= 0 || d > horizon) continue;
+      const myLat = track.lateral(car.pos, car.idx);
+      const clear = o.r + 2.6;
+      if (Math.abs(o.lat - lane) < clear || Math.abs(o.lat - myLat) < clear) {
+        const side = lane >= o.lat ? 1 : -1;
+        let alt = o.lat + side * (clear + 0.6);
+        if (Math.abs(alt) > half) alt = o.lat - side * (clear + 0.6);
+        lane = THREE.MathUtils.clamp(alt, -half, half);
+        break;
+      }
+    }
     const target = s.p.clone().addScaledVector(s.n, lane);
     const desired = Math.atan2(target.x - car.pos.x, target.z - car.pos.z);
     let diff = desired - car.heading;

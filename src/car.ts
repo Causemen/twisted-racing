@@ -57,6 +57,7 @@ export class Car {
   nitroActive = 0;
   speedMult: number;
   baseSpeedMult: number;
+  offroad = false;
 
   input: CarInput = { throttle: 0, steer: 0, fire: false, alt: false, nitro: false };
 
@@ -109,7 +110,7 @@ export class Car {
       let vf = this.vel.dot(f);
       let vl = this.vel.dot(r);
       const boosting = this.nitroActive > 0;
-      const maxS = C.maxSpeed * this.speedMult * (boosting ? C.nitroMult : 1);
+      const maxS = C.maxSpeed * this.speedMult * (boosting ? C.nitroMult : 1) * (this.offroad ? C.offroadSpeed : 1);
 
       if (boosting) {
         vf += C.accel * 1.8 * dt;
@@ -119,7 +120,7 @@ export class Car {
         vf -= (vf > 0 ? C.brake : C.accel * 0.6) * -throttle * dt;
       }
 
-      vf *= Math.exp(-(throttle === 0 && !boosting ? C.coastDrag : C.drag) * dt);
+      vf *= Math.exp(-((throttle === 0 && !boosting ? C.coastDrag : C.drag) + (this.offroad ? C.offroadDrag : 0)) * dt);
       if (vf > maxS) vf += (maxS - vf) * Math.min(1, 3 * dt);
       if (vf < -C.reverseMax) vf = -C.reverseMax;
 
@@ -129,7 +130,7 @@ export class Car {
 
       this.vel.copy(f).multiplyScalar(vf).addScaledVector(r, vl);
 
-      const turnScale = THREE.MathUtils.clamp(vf / 8, -1, 1);
+      const turnScale = THREE.MathUtils.clamp(vf / 4, -1, 1);
       this.heading -= steer * C.turnRate * turnScale * dt;
     } else {
       this.vy -= CONFIG.gravity * dt;

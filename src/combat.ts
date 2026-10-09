@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { CONFIG } from './config';
 import type { Car } from './car';
 import type { Particles } from './particles';
-import type { Track } from './track';
+import type { Obstacle, Track } from './track';
 
 interface Bullet {
   mesh: THREE.Mesh;
@@ -71,6 +71,29 @@ export class Combat {
       p.cooldown = 0;
       p.mesh.visible = true;
     }
+    for (const o of this.track.obstacles) {
+      o.alive = true;
+      o.mesh.visible = true;
+    }
+  }
+
+  /** Взрывоопасная бочка: взрывается от удара, пуль и соседних взрывов. */
+  destroyObstacle(o: Obstacle, by: Car | null) {
+    if (!o.alive || o.kind !== 'barrel') return;
+    o.alive = false;
+    o.mesh.visible = false;
+    o.respawn = 14;
+    this.blast(o.pos.clone().setY(0.8), 5, 30, by);
+  }
+
+  private hitObstacle(pos: THREE.Vector3, pad = 0): Obstacle | null {
+    for (const o of this.track.obstacles) {
+      if (!o.alive) continue;
+      const dx = pos.x - o.pos.x;
+      const dz = pos.z - o.pos.z;
+      if (dx * dx + dz * dz < (o.r + pad) ** 2 && pos.y < 2.4) return o;
+    }
+    return null;
   }
 
   damage(target: Car, amount: number, source: Car | null) {
@@ -104,12 +127,15 @@ export class Combat {
       car.gunCooldown = 1 / g.rate;
       car.heat += g.heatPerShot;
       if (car.heat >= 1) car.overheated = true;
+      let aim = car.heading;
+      const t = this.findTarget(car, 40, g.aimAssist);
+      if (t) aim = Math.atan2(t.pos.x - car.pos.x, t.pos.z - car.pos.z);
       const spread = (Math.random() - 0.5) * 2 * g.spread;
-      const dir = new THREE.Vector3(Math.sin(car.heading + spread), 0, Math.cos(car.heading + spread));
+      const dir = new THREE.Vector3(Math.sin(aim + spread), 0, Math.cos(aim + spread));
       const pos = car.pos.clone().addScaledVector(f, 2.6).setY(car.y + 1.9);
       const mesh = new THREE.Mesh(this.bulletGeo, this.bulletMat);
       mesh.position.copy(pos);
-      mesh.rotation.y = car.heading + spread;
+      mesh.rotation.y = aim + spread;
       this.scene.add(mesh);
       this.bullets.push({ mesh, pos, vel: dir.multiplyScalar(g.speed).add(car.vel), life: g.life, owner: car });
       this.particles.spawn(pos, f.clone().multiplyScalar(4), 0.06, 0.45, 0xfff2b0, 0xff8020);
@@ -183,7 +209,7 @@ export class Combat {
     return best;
   }
 
-  private blast(pos: THREE.Vector3, radius: number, dmg: number, owner: Car) {
+  private blast(pos: THREE.Vector3, radius: number, dmg: number, owner: Car | null) {
     for (const c of this.cars) {
       if (!c.alive) continue;
       const d = c.pos.distanceTo(new THREE.Vector3(pos.x, 0, pos.z));
@@ -193,6 +219,12 @@ export class Combat {
         const push = c.pos.clone().sub(pos).setY(0).normalize().multiplyScalar(12 * k);
         c.vel.add(push);
         c.launch(6 * k);
+      }
+    }
+    // Цепная реакция по бочкам
+    for (const o of this.track.obstacles) {
+      if (o.alive && o.kind === 'barrel' && o.pos.distanceTo(new THREE.Vector3(pos.x, 0, pos.z)) < radius) {
+        setTimeout(() => this.destroyObstacle(o, owner), 120);
       }
     }
     this.particles.explosion(pos, 0.8);
@@ -221,9 +253,13 @@ export class Combat {
           }
         }
       }
-      if (!hit && this.outsideWalls(b.pos)) {
-        this.particles.sparks(b.pos, 2);
-        hit = true;
+      if (!hit) {
+        const o = this.hitObstacle(b.pos);
+        if (o) {
+          this.particles.sparks(b.pos, 3);
+          if (o.kind === 'barrel') this.destroyObstacle(o, b.owner);
+          hit = true;
+        }
       }
       b.mesh.position.copy(b.pos);
       if (hit || b.life <= 0) {
@@ -247,7 +283,7 @@ export class Combat {
       r.mesh.rotation.y = Math.atan2(r.dir.x, r.dir.z);
       this.particles.spawn(r.pos, new THREE.Vector3(0, 1, 0), 0.5, 0.35, 0xffb040, 0x50483f, 2.5);
 
-      let boom = r.life <= 0 || this.outsideWalls(r.pos);
+      let boom = r.life <= 0 || !!this.hitObstacle(r.pos, 0.3);
       for (const c of this.cars) {
         if (c === r.owner || !c.alive) continue;
         if (c.pos.distanceTo(new THREE.Vector3(r.pos.x, c.pos.y, r.pos.z)) < R + 0.8) boom = true;
@@ -280,6 +316,15 @@ export class Combat {
       }
       return true;
     });
+
+    for (const o of this.track.obstacles) {
+      if (o.alive) continue;
+      o.respawn -= dt;
+      if (o.respawn <= 0 && !this.cars.some((c) => c.pos.distanceTo(o.pos) < 4)) {
+        o.alive = true;
+        o.mesh.visible = true;
+      }
+    }
 
     // Ящики
     for (const p of this.pickups) {
@@ -324,17 +369,12 @@ export class Combat {
     this.events.onPickup(car, label);
   }
 
-  private outsideWalls(pos: THREE.Vector3) {
-    const i = this.track.nearest(pos);
-    return Math.abs(this.track.lateral(pos, i)) > this.track.width / 2 + 1.6;
-  }
-
   private spawnPickups() {
     const geo = new THREE.BoxGeometry(1.4, 1.4, 1.4);
     const mat = new THREE.MeshLambertMaterial({ color: 0xd08a20, emissive: 0x402000 });
     for (const idx of this.track.pickupSpots) {
       const s = this.track.samples[idx];
-      for (const off of [-4.5, 0, 4.5]) {
+      for (const off of [-6, 0, 6]) {
         const pos = s.p.clone().addScaledVector(s.n, off);
         const mesh = new THREE.Mesh(geo, mat);
         mesh.position.copy(pos).setY(1);

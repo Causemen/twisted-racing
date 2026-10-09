@@ -11,6 +11,13 @@ window.addEventListener('keydown', (e) => {
 window.addEventListener('keyup', (e) => keys.delete(e.code));
 window.addEventListener('blur', () => keys.clear());
 
+// ЛКМ тоже стреляет: многие клавиатуры не ловят Пробел вместе с двумя стрелками
+let mouseFire = false;
+window.addEventListener('mousedown', (e) => {
+  if (e.button === 0 && (e.target as HTMLElement).tagName === 'CANVAS') mouseFire = true;
+});
+window.addEventListener('mouseup', () => (mouseFire = false));
+
 export function bindTouchButtons(root: HTMLElement) {
   root.querySelectorAll<HTMLElement>('[data-btn]').forEach((el) => {
     const name = el.dataset.btn as keyof typeof touch;
@@ -33,7 +40,7 @@ export function readInput(out: CarInput) {
   // На телефоне газ автоматический, пока не нажат тормоз
   out.throttle = down ? -1 : up || isTouch ? 1 : 0;
   out.steer = (k('ArrowRight', 'KeyD') || touch.right ? 1 : 0) - (k('ArrowLeft', 'KeyA') || touch.left ? 1 : 0);
-  out.fire = k('Space', 'KeyJ') || touch.fire;
+  out.fire = k('Space', 'KeyJ', 'KeyX', 'ControlLeft', 'ControlRight') || mouseFire || touch.fire;
   out.alt = k('ShiftLeft', 'ShiftRight', 'KeyK') || touch.alt;
   out.nitro = k('KeyE', 'KeyL') || touch.nitro;
 
