@@ -27,8 +27,16 @@ const KEYS_HTML = `<div class="keys">
   <div><kbd>WASD</kbd> или стрелки — руль, газ, тормоз</div>
   <div><kbd>Пробел</kbd>, <kbd>X</kbd> или левая кнопка мыши — пулемёт (следи за перегревом)</div>
   <div><kbd>Shift</kbd> — ракеты или мины, <kbd>E</kbd> — нитро, <kbd>M</kbd> — звук, <kbd>Esc</kbd> — выйти из гонки</div>
-  <div>На телефоне газ автоматический. Левый палец ведёт стик (влево-вправо руль, вниз тормоз), правый жмёт ОГОНЬ, ракеты и нитро; между кнопками можно скользить, не отрывая палец.</div>
 </div>`;
+
+const MENU_LINES = [
+  'Добрый вечер, пустошь! С вами Жорж Блеск и шесть банд, которые очень хотят вас переехать.',
+  'Сегодня в эфире: гонки, взрывы и розыгрыш бесплатного гроба!',
+  'Правило Колеса: стрелять можно, сходить с трассы нельзя. Умирать, к сожалению, можно.',
+  'Наш спонсор горючка. Горючка: потому что пешком по пустоши долго не живут.',
+  'Шпиль уже сделал ставки. На вас, кстати, не поставил никто. Удивите нас!',
+  'Тапните по главарю, и он скажет вам пару ласковых. Ну, или неласковых.',
+];
 
 type Mode = { kind: 'quick' } | { kind: 'campaign'; race: C.CampaignRace };
 
@@ -60,17 +68,68 @@ export class Ui {
   main() {
     const s = this.state;
     const cont = s ? `Продолжить кампанию <small>${esc(C.gang(s.gang).name)} · ${C.towersOwned(s)}/5 вышек</small>` : 'Кампания <small>Вступи в банду и захвати пустошь</small>';
+    const faces = C.GANGS.map(
+      (g) => `<button type="button" class="face" data-gang="${g.id}" style="--car:${g.color}" aria-label="${esc(g.leader)}, ${esc(g.name)}">
+        <img src="art/face-${g.id}.webp" alt="" loading="lazy"><span>${esc(g.leader)}</span></button>`,
+    ).join('');
+    const tick = [...C.GANGS.map((g) => `${g.leader}, «${g.name}»: ${g.motto}`), ...C.HOST_LINES.kill].map((t) => `<span>${esc(t)}</span>`).join('<i>✦</i>');
     this.show(`
-      <h1>TWISTED RACING</h1>
-      <p class="muted">Шесть банд, шесть Источников, одно правило Колеса: стрелять можно, сходить с трассы нельзя.</p>
+      <div class="onair"><span class="live">В ЭФИРЕ</span><span>Канал «Горячий эфир»</span></div>
+      <h1 class="logo"><img src="art/logo.webp" alt="RUSTMANIA. Боевые гонки пустоши"></h1>
+      <div class="host">
+        <img src="art/face-host.webp" alt="">
+        <div class="bubble"><b id="host-who">${esc(C.HOST)}</b><span id="host-line">${esc(MENU_LINES[0])}</span></div>
+      </div>
       <div class="menu">
         <button type="button" class="big" data-act="campaign">${cont}</button>
         <button type="button" class="big alt" data-act="quick">Быстрая гонка <small>Любая трасса, любая машина</small></button>
+        <button type="button" class="btn2" data-act="help">Как играть</button>
       </div>
-      ${KEYS_HTML}
-      <p class="ver">Версия 0.6</p>`);
+      <h3 class="faces-title">Главари банд</h3>
+      <div class="faces">${faces}</div>
+      <div class="ticker" aria-hidden="true"><div>${tick}<i>✦</i>${tick}<i>✦</i></div></div>
+      <p class="ver">Версия 0.7</p>`);
     this.on('[data-act="campaign"]', () => (this.state ? this.map() : this.gangSelect()));
     this.on('[data-act="quick"]', () => this.quickSetup());
+    this.on('[data-act="help"]', () => this.help());
+    // Ведущий болтает сам, тап по главарю даёт слово ему
+    let i = 0;
+    const say = (who: string, text: string) => {
+      $('host-who').textContent = who;
+      $('host-line').textContent = text;
+    };
+    const talk = (ms: number) => {
+      clearInterval(this.hostTimer);
+      this.hostTimer = window.setInterval(() => {
+        if (!document.getElementById('host-line')) return clearInterval(this.hostTimer);
+        i = (i + 1) % MENU_LINES.length;
+        say(C.HOST, MENU_LINES[i]);
+        $('screen').querySelectorAll('.face.on').forEach((f) => f.classList.remove('on'));
+        if (ms !== 5000) talk(5000);
+      }, ms);
+    };
+    talk(5000);
+    this.on('.face', (b) => {
+      const g = C.gang(b.dataset.gang as C.GangId);
+      say(`${g.leader}, «${g.name}»`, g.lines.intro);
+      talk(9000);
+      $('screen').querySelectorAll('.face').forEach((f) => f.classList.toggle('on', f === b));
+    });
+  }
+
+  private hostTimer = 0;
+
+  private help() {
+    const touch = `<div class="keys howto">
+      <div><b>Левый палец</b> — коснись левой половины экрана и веди: влево-вправо руль, вниз тормоз, тормоз с рулём даёт занос.</div>
+      <div><b>Правый палец</b> — большая кнопка ОГОНЬ, рядом ракета или мина и нитро. Между ними можно скользить, не отрывая палец.</div>
+      <div>Газ жмётся сам. Пулемёт греется: перегреешь, и он замолчит.</div>
+    </div>`;
+    this.show(`
+      <div class="head"><button type="button" class="back" data-act="back">← Меню</button><h2>Как играть</h2></div>
+      ${document.body.classList.contains('touch') ? touch : KEYS_HTML.replace('class="keys"', 'class="keys howto"')}
+      ${this.quote(C.HOST, 'Правило Колеса простое: стрелять можно, сходить с трассы нельзя. Всё остальное решает страховой отдел.')}`);
+    this.on('[data-act="back"]', () => this.main());
   }
 
   // ---------- Быстрая гонка ----------

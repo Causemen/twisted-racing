@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
-<title>Twisted Racing</title>
+<title>RUSTMANIA — Боевые гонки пустоши</title>
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link href="https://fonts.googleapis.com/css2?family=Russo+One&display=swap" rel="stylesheet" />
 <style>
@@ -130,6 +130,34 @@
   .keys { margin: 10px 0; }
   @media (max-width: 420px) { .card { padding: 14px; } .keys { display: none; } }
   @media (max-height: 800px) { .keys { font-size: 12px; line-height: 1.55; margin: 6px 0; } h1 { font-size: 36px; } .card .muted { margin: 4px 0; } }
+  .card .keys.howto { display: block; font-size: 14px; line-height: 1.6; }
+  .howto > div { margin-bottom: 8px; } .howto b { color: var(--sand); font-weight: 400; }
+  /* Главное меню: заставка шоу «Горячий эфир» */
+  .onair { display: flex; align-items: center; justify-content: center; gap: 10px; font-size: 12px; color: var(--muted); letter-spacing: 1px; }
+  .live { color: #fff; background: #c81e10; border-radius: 4px; padding: 2px 8px 2px 18px; position: relative; }
+  .live::before { content: ''; position: absolute; left: 7px; top: 50%; width: 7px; height: 7px; margin-top: -3.5px; border-radius: 50%; background: #fff; animation: blink .8s infinite alternate; }
+  h1.logo { margin: 8px auto 6px; line-height: 0; }
+  h1.logo img { width: min(440px, 100%); height: auto; filter: drop-shadow(0 4px 0 rgba(0,0,0,.35)); }
+  .host { display: flex; align-items: center; gap: 10px; text-align: left; margin: 6px 0 4px; }
+  .host > img { width: 64px; height: 64px; flex: none; border-radius: 10px; border: 3px solid #b88a2a; box-shadow: 0 0 0 2px #2a1a0e, 0 4px 10px rgba(0,0,0,.4); object-fit: cover; }
+  .bubble { position: relative; flex: 1; min-height: 64px; background: #f3e6d0; color: #241812; border-radius: 12px; padding: 8px 12px; font-family: system-ui, sans-serif; font-size: 14px; line-height: 1.35; display: grid; align-content: center; gap: 2px; }
+  .bubble::before { content: ''; position: absolute; left: -8px; top: 24px; border: 8px solid transparent; border-left: 0; border-right-color: #f3e6d0; }
+  .bubble b { font-family: 'Russo One', system-ui, sans-serif; font-weight: 400; font-size: 12px; color: var(--rust); }
+  .menu .btn2 { justify-self: center; }
+  .faces-title { text-align: center; margin: 4px 0 6px; }
+  .faces { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 6px; }
+  .face { font-family: inherit; background: none; border: 0; padding: 0; color: var(--muted); cursor: pointer; display: grid; justify-items: center; gap: 3px; font-size: 10px; }
+  .face img { width: 100%; max-width: 64px; aspect-ratio: 1; border-radius: 50%; border: 3px solid var(--car); object-fit: cover; background: #3a2a1e; transition: transform .15s; }
+  .face span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+  .face:hover img, .face.on img { transform: scale(1.08); }
+  .face.on span { color: var(--sand); }
+  .face:focus-visible { outline: 2px solid var(--sand); outline-offset: 2px; border-radius: 8px; }
+  .ticker { margin: 12px -20px 0; overflow: hidden; background: #c81e10; color: #fff; font-family: system-ui, sans-serif; font-size: 13px; padding: 5px 0; white-space: nowrap; }
+  .ticker > div { display: inline-block; animation: ticker 70s linear infinite; }
+  .ticker span { margin: 0 4px; } .ticker i { font-style: normal; color: #ffd23a; margin: 0 10px; }
+  @keyframes ticker { to { transform: translateX(-50%); } }
+  @media (prefers-reduced-motion: reduce) { .ticker > div, .live::before { animation: none; } }
+  @media (max-width: 420px) { .ticker { margin: 10px -14px 0; } .bubble { font-size: 13px; } .host > img { width: 56px; height: 56px; } }
   .go { margin-top: 8px; font-family: inherit; font-size: 22px; padding: 12px 36px; border: 0; border-radius: 10px; background: var(--rust); color: #fff; cursor: pointer; box-shadow: 0 4px 0 #6a2a10; }
   .go:active { transform: translateY(2px); box-shadow: 0 2px 0 #6a2a10; }
 
@@ -189,6 +217,9 @@
     #stick { left: calc(max(14px, env(safe-area-inset-left)) + 50px); top: calc(100% - max(10px, env(safe-area-inset-bottom)) - 50px); width: 100px; height: 100px; margin: -50px 0 0 -50px; }
     #stick-zone .hint { left: max(14px, env(safe-area-inset-left)); bottom: calc(max(10px, env(safe-area-inset-bottom)) + 104px); font-size: 9px; }
     .card { padding: 12px; width: min(760px, 100%); }
+    h1.logo { margin: 4px auto 2px; } h1.logo img { width: min(240px, 100%); } .faces-title { display: none; } .host > img { width: 48px; height: 48px; } .bubble { min-height: 48px; font-size: 12px; padding: 5px 10px; } .bubble::before { top: 16px; }
+    .menu { grid-template-columns: 1fr 1fr; margin: 8px 0; } .menu .btn2 { grid-column: 1 / -1; padding: 5px 12px; } .big { font-size: 17px; padding: 8px; }
+    .face img { max-width: 44px; } .ticker { margin: 8px -12px 0; font-size: 11px; padding: 3px 0; }
     .card h1 { font-size: 30px; } .card h2 { margin-bottom: 6px; font-size: 20px; }
     #trk, #car { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
     .trk, .car { padding: 5px 8px; }

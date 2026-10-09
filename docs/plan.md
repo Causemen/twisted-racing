@@ -1,4 +1,4 @@
-# Twisted Racing — план разработки
+# RUSTMANIA — план разработки
 
 *Версия 0.1, 9 октября 2026. Дополняет [concept.md](concept.md).*
 
