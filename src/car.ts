@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { CONFIG, NO_MODS, type CarClass, type CarMods } from './config';
-import { loadModel } from './assets';
+import { buildCarModel } from './carModels';
 
 export interface CarInput {
   throttle: number; // -1..1
@@ -17,7 +17,6 @@ export interface CarSpec {
   color: number;
   isPlayer: boolean;
   speedMult?: number;
-  model?: string;
   cls: CarClass;
   mods?: CarMods;
 }
@@ -81,60 +80,6 @@ export class Car {
     this.gunMult = spec.cls.gun * mods.gun;
     this.baseSpeedMult = this.speedMult = (spec.speedMult ?? 1) * spec.cls.speed * mods.speed;
     this.buildMesh();
-    if (spec.model) void this.useModel(spec.model);
-  }
-
-  /** Подменяет временную модель из примитивов на грузовик Kenney с «безумным» тюнингом. */
-  private async useModel(url: string) {
-    let model: THREE.Group;
-    try {
-      model = await loadModel(url);
-    } catch {
-      return; // остаётся модель из примитивов
-    }
-    model.traverse((o) => {
-      const m = o as THREE.Mesh;
-      if (m.isMesh) {
-        const mat = (m.material as THREE.MeshStandardMaterial).clone();
-        mat.color.setRGB(...this.cls.tint); // перекраска под банду
-        mat.roughness = 0.95;
-        m.material = mat;
-      }
-    });
-    const metal = new THREE.MeshLambertMaterial({ color: 0x8d8478 });
-    const rust = new THREE.MeshLambertMaterial({ color: 0x7a4426 });
-    const dark = new THREE.MeshLambertMaterial({ color: 0x2a2420 });
-    const add = (geo: THREE.BufferGeometry, mat: THREE.Material, x: number, y: number, z: number) => {
-      const m = new THREE.Mesh(geo, mat);
-      m.position.set(x, y, z);
-      m.castShadow = true;
-      model.add(m);
-      return m;
-    };
-    // Таран с шипами
-    add(new THREE.BoxGeometry(1.6, 0.22, 0.14), rust, 0, 0.42, 1.45);
-    const spike = new THREE.ConeGeometry(0.07, 0.36, 5);
-    spike.rotateX(Math.PI / 2);
-    for (const x of [-0.6, -0.2, 0.2, 0.6]) add(spike, metal, x, 0.42, 1.68);
-    // Бронеплиты на бортах
-    for (const x of [-0.79, 0.79]) {
-      const plate = add(new THREE.BoxGeometry(0.06, 0.3, 1.1), rust, x, 0.55, -0.1);
-      plate.rotation.z = x > 0 ? -0.08 : 0.08;
-    }
-    // Пулемёт на крыше
-    add(new THREE.BoxGeometry(0.3, 0.14, 0.3), dark, 0, 1.06, 0.15);
-    add(new THREE.BoxGeometry(0.1, 0.1, 0.75), dark, 0, 1.12, 0.45);
-    // Выхлопные трубы
-    const pipe = new THREE.CylinderGeometry(0.06, 0.07, 0.8, 6);
-    for (const x of [-0.5, 0.5]) {
-      const p = add(pipe, metal, x, 0.9, -1.15);
-      p.rotation.x = -0.35;
-    }
-
-    model.scale.setScalar(this.cls.scale);
-    this.wheels = model.children.filter((c) => c.name.startsWith('wheel'));
-    this.body.clear();
-    this.body.add(model);
   }
 
   get forward() {
@@ -230,44 +175,9 @@ export class Car {
   }
 
   private buildMesh() {
-    const paint = new THREE.MeshLambertMaterial({ color: this.color });
-    const dark = new THREE.MeshLambertMaterial({ color: 0x2a2420 });
-    const metal = new THREE.MeshLambertMaterial({ color: 0x8d8478 });
-    const glass = new THREE.MeshLambertMaterial({ color: 0x1b2730 });
-
-    const add = (geo: THREE.BufferGeometry, mat: THREE.Material, x: number, y: number, z: number, parent: THREE.Object3D = this.body) => {
-      const m = new THREE.Mesh(geo, mat);
-      m.position.set(x, y, z);
-      m.castShadow = true;
-      parent.add(m);
-      return m;
-    };
-
-    add(new THREE.BoxGeometry(2, 0.7, 3.8), paint, 0, 0.75, 0);
-    add(new THREE.BoxGeometry(1.6, 0.6, 1.6), glass, 0, 1.35, -0.3);
-    add(new THREE.BoxGeometry(1.7, 0.12, 1.7), paint, 0, 1.7, -0.3);
-    add(new THREE.BoxGeometry(2.2, 0.35, 0.4), metal, 0, 0.6, 2.0);
-    add(new THREE.BoxGeometry(2.1, 0.3, 0.3), dark, 0, 0.55, -2.0);
-    // Шипы на бампере
-    const spike = new THREE.ConeGeometry(0.14, 0.6, 5);
-    spike.rotateX(Math.PI / 2);
-    for (const x of [-0.8, -0.27, 0.27, 0.8]) add(spike, metal, x, 0.6, 2.45);
-    // Выхлопные трубы
-    const pipe = new THREE.CylinderGeometry(0.12, 0.12, 1.4, 6);
-    for (const x of [-0.75, 0.75]) {
-      const p = add(pipe, metal, x, 1.25, -1.5);
-      p.rotation.x = -0.5;
-    }
-    // Пулемёт на крыше
-    const gun = add(new THREE.BoxGeometry(0.25, 0.25, 1.2), dark, 0, 1.9, 0.2);
-    gun.castShadow = true;
-
-    const wheelGeo = new THREE.CylinderGeometry(0.55, 0.55, 0.5, 10);
-    wheelGeo.rotateZ(Math.PI / 2);
-    for (const [x, z] of [[-1.1, 1.25], [1.1, 1.25], [-1.1, -1.25], [1.1, -1.25]]) {
-      this.wheels.push(add(wheelGeo, dark, x, 0.55, z));
-    }
-
+    const { root, wheels } = buildCarModel(this.cls.id);
+    this.wheels = wheels;
+    this.body.add(root);
     this.mesh.add(this.body);
   }
 }
