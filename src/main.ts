@@ -4,7 +4,7 @@ import { Car } from './car';
 import { Bot, type BotStyle } from './bot';
 import { Combat } from './combat';
 import { Particles } from './particles';
-import { Track } from './track';
+import { Track, TRACKS } from './track';
 import { bindTouchButtons, isTouch, readInput } from './input';
 import { Hud } from './hud';
 import { Flashes, SkidMarks } from './effects';
@@ -56,8 +56,25 @@ function resize() {
 window.addEventListener('resize', resize);
 resize();
 
-const track = new Track();
+let track = new Track(TRACKS[0]);
 scene.add(track.group);
+applyTheme();
+
+function applyTheme() {
+  const sky = track.def.colors.sky;
+  (scene.background as THREE.Color).set(sky);
+  scene.fog!.color.set(sky);
+}
+
+function loadTrack(id: string) {
+  if (track.def.id === id) return;
+  scene.remove(track.group);
+  track = new Track(TRACKS.find((t) => t.id === id) ?? TRACKS[0]);
+  scene.add(track.group);
+  applyTheme();
+  combat.setTrack(track);
+  hud.setTrack(track);
+}
 const particles = new Particles();
 scene.add(particles.mesh);
 const skids = new SkidMarks();
@@ -160,6 +177,7 @@ function placeOnGrid() {
 
 function startRace() {
   void initAudio();
+  loadTrack(hud.selectedTrack);
   setupCars(hud.selectedClass);
   combat.reset();
   skids.clear();

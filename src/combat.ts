@@ -61,6 +61,13 @@ export class Combat {
     this.spawnPickups();
   }
 
+  setTrack(track: Track) {
+    for (const p of this.pickups) this.scene.remove(p.mesh);
+    this.pickups = [];
+    this.track = track;
+    this.spawnPickups();
+  }
+
   reset() {
     for (const b of this.bullets) this.scene.remove(b.mesh);
     for (const r of this.rockets) this.scene.remove(r.mesh);
