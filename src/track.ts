@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { CONFIG } from './config';
+import { buildScenery } from './scenery';
 
 export interface TrackSample {
   p: THREE.Vector3;
@@ -240,8 +241,7 @@ export class Track {
     }
 
     this.placeObstacles();
-    this.boundaryRocks();
-    this.scatterScenery();
+    this.group.add(buildScenery(this));
   }
 
   private placeObstacles() {
@@ -338,35 +338,6 @@ export class Track {
     }
   }
 
-  /** Крупные камни по внешнему краю обочины: видимая граница вместо забора. */
-  private boundaryRocks() {
-    let seed = 99;
-    const rnd = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
-    const geo = new THREE.DodecahedronGeometry(1, 0);
-    const mat = new THREE.MeshLambertMaterial({ color: this.def.colors.boundary });
-    const N = this.N;
-    const count = Math.ceil(N / 6) * 2;
-    const inst = new THREE.InstancedMesh(geo, mat, count);
-    inst.castShadow = true;
-    inst.receiveShadow = true;
-    const m = new THREE.Matrix4();
-    const q = new THREE.Quaternion();
-    let w = 0;
-    for (let i = 0; i < N; i += 6) {
-      const s = this.samples[i];
-      for (const side of [-1, 1]) {
-        const size = 2.2 + rnd() * 2.5;
-        const pos = s.p.clone().addScaledVector(s.n, side * (this.width / 2 + this.shoulder + 1.5 + rnd() * 2));
-        pos.y = size * 0.35;
-        q.setFromEuler(new THREE.Euler(rnd() * 3, rnd() * 3, rnd() * 3));
-        m.compose(pos, q, new THREE.Vector3(size, size * 0.75, size));
-        inst.setMatrixAt(w++, m);
-      }
-    }
-    inst.count = w;
-    this.group.add(inst);
-  }
-
   private ribbon(half: number, y: number, color: (i: number) => THREE.Color) {
     const N = this.N;
     const pos: number[] = [];
@@ -442,55 +413,5 @@ export class Track {
     tex.magFilter = THREE.NearestFilter;
     tex.colorSpace = THREE.SRGBColorSpace;
     return tex;
-  }
-
-  private scatterScenery() {
-    let seed = 7;
-    const rnd = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
-    const rockGeo = new THREE.DodecahedronGeometry(1, 0);
-    const rockMat = new THREE.MeshLambertMaterial({ color: this.def.colors.rock });
-    const barrelGeo = new THREE.CylinderGeometry(0.6, 0.6, 1.4, 10);
-    const barrelMat = new THREE.MeshLambertMaterial({ color: 0x7a2e1c });
-    const tireGeo = new THREE.TorusGeometry(0.8, 0.35, 6, 12);
-    const tireMat = new THREE.MeshLambertMaterial({ color: 0x1d1a18 });
-    const wreckMat = new THREE.MeshLambertMaterial({ color: 0x5b3a26 });
-
-    for (let k = 0; k < 320; k++) {
-      const x = -170 + rnd() * 380;
-      const z = -120 + rnd() * 340;
-      const p = new THREE.Vector3(x, 0, z);
-      const i = this.nearest(p);
-      const d = Math.abs(this.lateral(p, i));
-      const along = p.distanceTo(this.samples[i].p);
-      if (Math.min(d, along) < this.width / 2 + this.shoulder + 5) continue;
-      const near = Math.min(d, along) < this.width / 2 + this.shoulder + 14;
-      const kind = rnd();
-      let mesh: THREE.Mesh;
-      if (kind < 0.55) {
-        mesh = new THREE.Mesh(rockGeo, rockMat);
-        const s = 1 + rnd() * (near ? 2 : 5);
-        mesh.scale.set(s, s * (0.5 + rnd() * 0.6), s);
-        mesh.rotation.set(rnd() * 3, rnd() * 3, rnd() * 3);
-        mesh.position.set(x, s * 0.3, z);
-      } else if (kind < 0.75) {
-        mesh = new THREE.Mesh(barrelGeo, barrelMat);
-        mesh.position.set(x, 0.7, z);
-        if (rnd() < 0.3) {
-          mesh.rotation.z = Math.PI / 2;
-          mesh.position.y = 0.6;
-        }
-      } else if (kind < 0.9) {
-        mesh = new THREE.Mesh(tireGeo, tireMat);
-        mesh.rotation.x = Math.PI / 2;
-        mesh.position.set(x, 0.35, z);
-      } else {
-        mesh = new THREE.Mesh(new THREE.BoxGeometry(2.4, 1.2, 4.4), wreckMat);
-        mesh.rotation.set(0, rnd() * 6, (rnd() - 0.5) * 0.4);
-        mesh.position.set(x, 0.6, z);
-      }
-      mesh.castShadow = true;
-      mesh.receiveShadow = true;
-      this.group.add(mesh);
-    }
   }
 }
