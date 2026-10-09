@@ -256,6 +256,43 @@
   #touch .fire-pad .nitro.ready { border-color: var(--nitro); box-shadow: 0 0 12px var(--nitro); }
   #touch .fire-pad button.down { background: var(--rust); border-color: var(--sand); }
   #touch .fire-pad .nitro.down { background: var(--nitro); }
+  /* Пауза и настройки */
+  #pause { position: fixed; inset: 0; z-index: 20; display: grid; place-items: center; padding: 16px; background: rgba(20, 12, 8, 0.72); }
+  #pause .card { width: min(420px, 100%); max-height: calc(100dvh - 24px); overflow-y: auto; }
+  @media (max-height: 500px) {
+    #pause { padding: 8px; }
+    #pause .card { width: min(640px, 100%); padding: 12px 16px; }
+    #pause .card h2 { margin: 0 0 4px; font-size: 20px; }
+    .pause-host { font-size: 13px; margin-bottom: 8px; }
+    .opts { grid-template-columns: 1fr 1fr; gap: 6px; }
+    .opt { padding: 7px 10px; font-size: 14px; }
+    #pause .row { margin-top: 8px; }
+  }
+  .pause-host { font-family: system-ui, sans-serif; font-size: 15px; line-height: 1.4; color: var(--ink); margin: 0 0 12px; }
+  .pause-host b { font-family: 'Russo One', system-ui, sans-serif; font-weight: 400; color: #ffd23a; }
+  .opts { display: grid; gap: 8px; text-align: left; }
+  .opt { display: flex; align-items: center; justify-content: space-between; gap: 10px; font-family: inherit; font-size: 15px; color: var(--ink); background: rgba(255,255,255,0.05); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; cursor: pointer; }
+  div.opt { cursor: default; flex-wrap: wrap; }
+  .opt b { font-weight: 400; color: var(--sand); }
+  .segs { display: flex; gap: 4px; }
+  .seg { font-family: inherit; font-size: 12px; color: var(--muted); background: none; border: 1px solid var(--line); border-radius: 6px; padding: 5px 8px; cursor: pointer; }
+  .seg.on { color: #111; background: var(--sand); border-color: var(--sand); }
+  .row.tight { margin-top: 0; gap: 8px; }
+  body:has(#pause:not([hidden])) #touch { display: none; }
+  /* Размер сенсорных кнопок */
+  body { --btn-k: 1; --pad-k: 1; }
+  body.btn-s { --btn-k: .82; } body.btn-l { --btn-k: 1.18; }
+  #touch .fire-pad { transform: scale(calc(var(--pad-k) * var(--btn-k))); transform-origin: right bottom; }
+  #stick { transform: scale(var(--btn-k)); }
+  /* Левша: руль справа, огонь слева */
+  body.lefty #stick-zone { left: auto; right: 0; }
+  body.lefty #stick { left: auto; right: calc(max(20px, env(safe-area-inset-right)) + 60px); margin: -60px -60px 0 0; }
+  body.lefty #stick-zone.active #stick { right: auto; margin: -60px 0 0 -60px; }
+  body.lefty #stick-zone .hint { left: auto; right: max(20px, env(safe-area-inset-right)); text-align: right; }
+  body.lefty #touch .fire-pad { right: auto; left: max(16px, env(safe-area-inset-left)); transform-origin: left bottom; }
+  body.lefty #touch .fire-pad .fire { right: auto; left: 0; }
+  body.lefty #touch .fire-pad .alt { right: auto; left: 120px; }
+  body.lefty #touch .fire-pad .nitro { right: auto; left: 22px; }
   .card { touch-action: pan-y; }
   body.touch .keys { display: none; }
   /* Телефон в альбомной ориентации: экран низкий, интерфейс ужимаем, чтобы было видно трассу */
@@ -276,7 +313,11 @@
     #countdown { font-size: 60px; }
     #toast { font-size: 19px; }
     #dead { font-size: 15px; }
-    #touch .fire-pad { right: max(10px, env(safe-area-inset-right)); bottom: max(8px, env(safe-area-inset-bottom)); transform: scale(.78); transform-origin: right bottom; }
+    body { --pad-k: .78; }
+    #touch .fire-pad { right: max(10px, env(safe-area-inset-right)); bottom: max(8px, env(safe-area-inset-bottom)); }
+    body.lefty #touch .fire-pad { right: auto; left: max(10px, env(safe-area-inset-left)); }
+    body.lefty #stick { right: calc(max(14px, env(safe-area-inset-right)) + 50px); margin: -50px -50px 0 0; }
+    body.lefty #stick-zone.active #stick { margin: -50px 0 0 -50px; }
     #stick { left: calc(max(14px, env(safe-area-inset-left)) + 50px); top: calc(100% - max(10px, env(safe-area-inset-bottom)) - 50px); width: 100px; height: 100px; margin: -50px 0 0 -50px; }
     #stick-zone .hint { left: max(14px, env(safe-area-inset-left)); bottom: calc(max(10px, env(safe-area-inset-bottom)) + 104px); font-size: 9px; }
     .card { padding: 12px; width: min(760px, 100%); }
@@ -289,7 +330,7 @@
     #host .bubble::after { top: auto; bottom: -9px; left: 25px; margin: 0; border-width: 10px 3px 0 9px; border-color: #fff transparent transparent transparent; }
     #overlay:has(#host:not([hidden])) .card { flex: 1 1 auto; max-height: 100%; }
     h1.logo { margin: 4px auto 2px; } h1.logo img { width: min(240px, 100%); } .faces-title { display: none; }
-    .menu { grid-template-columns: 1fr 1fr; margin: 8px 0; } .menu .btn2 { grid-column: 1 / -1; padding: 5px 12px; } .big { font-size: 17px; padding: 8px; }
+    .menu { grid-template-columns: 1fr 1fr; margin: 8px 0; } .menu .row.tight { grid-column: 1 / -1; } .menu .btn2 { padding: 5px 12px; } .big { font-size: 17px; padding: 8px; }
     .face img { max-width: 44px; } .ticker { margin: 8px -12px 0; font-size: 11px; padding: 3px 0; }
     .gangs { grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 6px; } .gang-body { padding: 5px 6px 6px; } .gang-body small:not(.lead), .gang-body em { display: none; }
     .join { grid-template-columns: 150px 1fr; } .join > img { max-width: 150px; } .tface { width: 30px; height: 30px; }
@@ -318,7 +359,7 @@
   <div id="say" hidden><img id="say-face" alt=""><div><b id="say-who"></b><span id="say-line"></span></div></div>
   <div class="mute-wrap">
     <button id="mute" type="button">Звук вкл</button>
-    <button id="quit" type="button">Выйти</button>
+    <button id="quit" type="button" aria-label="Пауза">❚❚ Пауза</button>
   </div>
   <div id="feed"></div>
   <div id="countdown" hidden></div>
@@ -343,6 +384,8 @@
     <button type="button" class="fire" data-btn="fire">ОГОНЬ</button>
   </div>
 </div>
+
+<div id="pause" hidden><div class="card" id="pause-box"></div></div>
 
 <div id="overlay">
   <div id="host" hidden>

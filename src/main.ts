@@ -9,6 +9,7 @@ import { Combat } from './combat';
 import { Particles } from './particles';
 import { Track, TRACKS } from './track';
 import { bindTouchButtons, bindTouchStick, isTouch, readInput } from './input';
+import { Pause } from './pause';
 import { Hud } from './hud';
 import { Flashes, Scorches, SkidMarks } from './effects';
 import { LIGHTING, flicker } from './scenery';
@@ -205,16 +206,31 @@ function startRace(cfg: RaceConfig) {
 const ui = new Ui(startRace);
 
 function abortRace() {
+  paused = false;
   if (state === 'menu') return;
   state = 'menu';
   ui.aborted();
 }
-window.addEventListener('keydown', (e) => {
-  if (e.code === 'Escape') abortRace();
-});
-document.getElementById('quit')!.addEventListener('click', abortRace);
+// Пауза: симуляция стоит, картинка и меню паузы поверх
+let paused = false;
 const muteBtn = document.getElementById('mute')!;
 const syncMute = () => (muteBtn.textContent = isMuted() ? 'Звук выкл' : 'Звук вкл');
+const pause = new Pause(() => (paused = false), abortRace, () => syncMute());
+ui.onSettings = () => pause.show(false);
+function pauseRace() {
+  if (state === 'menu' || pause.open) return;
+  paused = true;
+  pause.show(true);
+}
+window.addEventListener('keydown', (e) => {
+  if (e.code !== 'Escape') return;
+  if (pause.open) pause.close();
+  else pauseRace();
+});
+document.getElementById('quit')!.addEventListener('click', pauseRace);
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) pauseRace();
+});
 syncMute();
 muteBtn.addEventListener('click', () => {
   toggleMute();
@@ -446,15 +462,15 @@ function render(dt: number) {
 
   if (state !== 'menu') hud.update(player, raceTime);
   const slip = Math.abs(player.vel.dot(new THREE.Vector3(player.forward.z, 0, -player.forward.x)));
-  updateCarSound(player.speed, CONFIG.car.maxSpeed, player.onGround ? slip : 0, player.alive && state !== 'menu');
+  updateCarSound(player.speed, CONFIG.car.maxSpeed, player.onGround ? slip : 0, player.alive && state !== 'menu' && !paused);
   renderer.render(scene, camera);
 }
 
 const clock = new THREE.Clock();
 function frame() {
   const dt = Math.min(clock.getDelta(), 1 / 30);
-  step(dt);
-  render(dt);
+  if (!paused) step(dt);
+  render(paused ? 0 : dt);
   requestAnimationFrame(frame);
 }
 
