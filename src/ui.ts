@@ -4,6 +4,7 @@ import { TRACKS } from './track';
 import type { RaceConfig, RaceResult } from './race';
 import type { BotStyle } from './bot';
 import * as C from './campaign';
+import { faceOf } from './hud';
 
 const $ = (id: string) => document.getElementById(id)!;
 const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]!);
@@ -28,13 +29,6 @@ const KEYS_HTML = `<div class="keys">
   <div><kbd>Пробел</kbd>, <kbd>X</kbd> или левая кнопка мыши — пулемёт (следи за перегревом)</div>
   <div><kbd>Shift</kbd> — ракеты или мины, <kbd>E</kbd> — нитро, <kbd>M</kbd> — звук, <kbd>Esc</kbd> — выйти из гонки</div>
 </div>`;
-
-// Портрет говорящего: главарь банды или ведущий
-function faceOf(speaker: string) {
-  if (speaker === C.HOST) return 'art/face-host.webp';
-  const g = C.GANGS.find((x) => x.leader === speaker);
-  return g ? `art/face-${g.id}.webp` : '';
-}
 
 const MENU_LINES = [
   'Добрый вечер, пустошь! С вами Жорж Блеск и шесть банд, которые очень хотят вас переехать.',
@@ -93,7 +87,7 @@ export class Ui {
       <h3 class="faces-title">Главари банд</h3>
       <div class="faces">${faces}</div>
       <div class="ticker" aria-hidden="true"><div>${tick}<i>✦</i>${tick}<i>✦</i></div></div>
-      <p class="ver">Версия 0.7</p>`);
+      <p class="ver">Версия 0.8</p>`);
     this.on('[data-act="campaign"]', () => (this.state ? this.map() : this.gangSelect()));
     this.on('[data-act="quick"]', () => this.quickSetup());
     this.on('[data-act="help"]', () => this.help());

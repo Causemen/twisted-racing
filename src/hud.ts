@@ -2,8 +2,16 @@
 import type { Car } from './car';
 import type { Track } from './track';
 import type { RaceResult } from './race';
+import { GANGS, HOST } from './campaign';
 
 const $ = (id: string) => document.getElementById(id)!;
+
+// Портрет говорящего: главарь банды или ведущий
+export function faceOf(speaker: string) {
+  if (speaker === HOST) return 'art/face-host.webp';
+  const g = GANGS.find((x) => x.leader === speaker);
+  return g ? `art/face-${g.id}.webp` : '';
+}
 
 export class Hud {
   laps = 3;
@@ -27,6 +35,7 @@ export class Hud {
   hideOverlay() {
     $('overlay').hidden = true;
     $('hud').hidden = false;
+    $('say').hidden = true;
   }
 
   countdown(t: number) {
@@ -36,6 +45,9 @@ export class Hud {
   }
 
   feed(text: string, highlight = false) {
+    // Реплики ведущего и главарей идут «в эфир» с лицом, остальное в ленту
+    const m = /^(.+?): «(.+)»$/.exec(text);
+    if (m && faceOf(m[1])) return this.say(m[1], m[2]);
     const box = $('feed');
     const line = document.createElement('div');
     line.textContent = text;
@@ -43,6 +55,24 @@ export class Hud {
     box.prepend(line);
     setTimeout(() => line.remove(), 3500);
     while (box.children.length > 4) box.lastChild!.remove();
+  }
+
+  private sayTimer = 0;
+
+  say(who: string, line: string) {
+    const el = $('say');
+    ($('say-face') as HTMLImageElement).src = faceOf(who);
+    $('say-who').textContent = who;
+    $('say-line').textContent = line;
+    el.hidden = false;
+    el.classList.remove('in', 'out');
+    void el.offsetWidth;
+    el.classList.add('in');
+    clearTimeout(this.sayTimer);
+    this.sayTimer = window.setTimeout(() => {
+      el.classList.replace('in', 'out');
+      this.sayTimer = window.setTimeout(() => (el.hidden = true), 300);
+    }, 3800);
   }
 
   toast(text: string) {
@@ -66,7 +96,9 @@ export class Hud {
     const order = this.standings();
     const place = order.indexOf(player) + 1;
     $('lap').textContent = `${Math.min(Math.max(player.lap, 1), this.laps)}/${this.laps}`;
-    $('place').textContent = `${place}/${this.cars.length}`;
+    $('place').textContent = String(place);
+    $('place-n').textContent = `/${this.cars.length}`;
+    $('place-box').classList.toggle('first', place === 1);
     $('kills').textContent = String(player.kills);
     $('time').textContent = formatTime(time);
     ($('hp') as HTMLElement).style.width = `${(player.hp / player.maxHp) * 100}%`;
@@ -101,35 +133,41 @@ export class Hud {
     const W = this.map.width;
     const H = this.map.height;
     const b = this.bounds;
-    const pad = 10;
+    const pad = 16;
     const k = Math.min((W - pad * 2) / (b.maxX - b.minX), (H - pad * 2) / (b.maxZ - b.minZ));
     const tx = (x: number, z: number): [number, number] => [
       pad + (z - x - b.minX) * k,
       pad + (-(x + z) - b.minZ) * k,
     ];
     ctx.clearRect(0, 0, W, H);
-    ctx.lineWidth = 5;
-    ctx.strokeStyle = 'rgba(40,30,25,0.75)';
-    ctx.beginPath();
-    this.track.samples.forEach((s, i) => {
-      const [x, y] = tx(s.p.x, s.p.z);
-      if (i) ctx.lineTo(x, y);
-      else ctx.moveTo(x, y);
-    });
-    ctx.closePath();
+    // Без подложки: тёмная обводка и светлая линия трассы читаются на любом фоне
+    const path = () => {
+      ctx.beginPath();
+      this.track.samples.forEach((s, i) => {
+        const [x, y] = tx(s.p.x, s.p.z);
+        if (i) ctx.lineTo(x, y);
+        else ctx.moveTo(x, y);
+      });
+      ctx.closePath();
+    };
+    ctx.lineJoin = 'round';
+    path();
+    ctx.lineWidth = 14;
+    ctx.strokeStyle = 'rgba(18,10,5,0.85)';
+    ctx.stroke();
+    ctx.lineWidth = 6;
+    ctx.strokeStyle = 'rgba(255,240,220,0.9)';
     ctx.stroke();
     for (const c of this.cars) {
       if (!c.alive) continue;
       const [x, y] = tx(c.pos.x, c.pos.z);
       ctx.fillStyle = '#' + c.color.toString(16).padStart(6, '0');
       ctx.beginPath();
-      ctx.arc(x, y, c.isPlayer ? 5 : 4, 0, Math.PI * 2);
+      ctx.arc(x, y, c.isPlayer ? 11 : 8, 0, Math.PI * 2);
       ctx.fill();
-      if (c.isPlayer) {
-        ctx.strokeStyle = '#fff';
-        ctx.lineWidth = 2;
-        ctx.stroke();
-      }
+      ctx.strokeStyle = c.isPlayer ? '#fff' : '#120a05';
+      ctx.lineWidth = c.isPlayer ? 4 : 3;
+      ctx.stroke();
     }
   }
 }
