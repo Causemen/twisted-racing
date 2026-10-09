@@ -29,30 +29,54 @@
   #game, #game canvas { position: fixed; inset: 0; width: 100%; height: 100%; display: block; }
   [hidden] { display: none !important; }
 
-  #hud { position: fixed; inset: 0; pointer-events: none; }
-  .top { position: absolute; top: max(12px, env(safe-area-inset-top)); left: 16px; right: 16px; display: flex; gap: 8px; align-items: flex-start; }
-  .chip { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 6px 10px; font-size: 13px; color: var(--muted); }
-  .chip b { display: block; color: var(--ink); font-size: 22px; font-weight: 400; line-height: 1.1; }
-  #minimap { margin-left: auto; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; width: 132px; height: 132px; }
-  .bottom { position: absolute; left: 16px; bottom: max(14px, env(safe-area-inset-bottom)); width: min(320px, calc(100% - 32px)); background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; }
-  .row { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--muted); margin: 4px 0; }
-  .row span { width: 54px; }
-  .bar { flex: 1; height: 10px; background: rgba(255,255,255,0.08); border-radius: 5px; overflow: hidden; }
+  /* HUD как телетрансляция: без подложек, текст с тёмной обводкой */
+  #hud { position: fixed; inset: 0; pointer-events: none; --ol: 0 0 3px #000, 2px 2px 0 #120a05, -2px 2px 0 #120a05, 2px -2px 0 #120a05, -2px -2px 0 #120a05, 0 2px 0 #120a05, 0 -2px 0 #120a05, 2px 0 0 #120a05, -2px 0 0 #120a05; }
+  #hud, #hud button { color: #fff; text-shadow: var(--ol); letter-spacing: .3px; }
+  .top { position: absolute; top: max(10px, env(safe-area-inset-top)); left: max(14px, env(safe-area-inset-left)); right: max(14px, env(safe-area-inset-right)); display: flex; gap: 14px; align-items: flex-start; }
+  .place { line-height: .85; font-size: 64px; color: #fff; display: flex; align-items: flex-start; }
+  .place.first { color: #ffd23a; }
+  .place small { font-size: 22px; margin: 4px 0 0 2px; color: #fff; }
+  .stats { display: grid; gap: 1px; font-size: 13px; padding-top: 4px; }
+  .stats b { font-weight: 400; font-size: 20px; color: #ffd23a; font-variant-numeric: tabular-nums; margin-left: 4px; }
+  .onair-tag { position: absolute; left: 50%; top: 2px; transform: translateX(-50%); font-size: 13px; color: #ff3a24; white-space: nowrap; }
+  .onair-tag::first-letter { animation: blink .8s infinite alternate; }
+  .onair-tag span { color: #fff; }
+  #minimap { margin-left: auto; width: 132px; height: 132px; filter: drop-shadow(0 2px 2px rgba(0,0,0,.6)); }
+  .mute-wrap { position: absolute; right: max(14px, env(safe-area-inset-right)); top: calc(max(10px, env(safe-area-inset-top)) + 138px); display: flex; gap: 6px; }
+  #mute, #quit { pointer-events: auto; font-family: inherit; font-size: 12px; background: none; border: 2px solid rgba(255,255,255,.75); box-shadow: 0 0 0 1px #120a05, inset 0 0 0 1px #120a05; border-radius: 6px; padding: 3px 8px; cursor: pointer; }
+  .gauges { position: absolute; left: max(14px, env(safe-area-inset-left)); bottom: max(14px, env(safe-area-inset-bottom)); width: min(300px, calc(100% - 28px)); display: grid; gap: 5px; }
+  .gauge { display: grid; grid-template-columns: 90px 1fr; align-items: center; gap: 8px; font-size: 14px; }
+  .bar { height: 13px; background: rgba(18,10,5,.45); border: 2px solid #120a05; border-radius: 4px; overflow: hidden; box-shadow: 0 1px 2px rgba(0,0,0,.5); }
   .bar i { display: block; height: 100%; width: 100%; transition: width .1s; }
-  #hp { background: var(--hp); } #hp.low { animation: blink .4s infinite alternate; }
-  #heat { background: var(--heat); } #heat.over { background: #ff2a10; }
-  #nitro { background: var(--nitro); opacity: .55; } #nitro.ready { opacity: 1; }
-  #weapon { color: var(--sand); font-size: 15px; }
+  #hp { background: linear-gradient(#ff6a4a, var(--hp)); } #hp.low { animation: blink .4s infinite alternate; }
+  #heat { background: linear-gradient(#ffc45a, var(--heat)); } #heat.over { background: #ff2a10; }
+  #nitro { background: linear-gradient(#8fd0ff, var(--nitro)); opacity: .55; } #nitro.ready { opacity: 1; }
+  #weapon { color: #ffd23a; font-size: 16px; font-weight: 400; }
   @keyframes blink { to { opacity: .35; } }
-  .mute-wrap { position: absolute; right: 16px; top: calc(max(12px, env(safe-area-inset-top)) + 140px); }
-  #mute, #quit { pointer-events: auto; display: block; margin-bottom: 6px; font-family: inherit; font-size: 12px; color: var(--muted); background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 4px 8px; cursor: pointer; }
-  @media (max-width: 600px) { .mute-wrap { top: calc(max(12px, env(safe-area-inset-top)) + 104px); } }
-  #feed { position: absolute; top: 90px; left: 16px; font-size: 14px; text-shadow: 0 1px 2px #000; }
-  #feed div { margin: 2px 0; } #feed .hl { color: var(--sand); }
-  #countdown { position: absolute; inset: 0; display: grid; place-items: center; font-size: 96px; color: var(--sand); text-shadow: 0 4px 0 #5a2a10, 0 0 30px rgba(0,0,0,.5); }
-  #toast { position: absolute; left: 50%; top: 28%; transform: translateX(-50%); font-size: 28px; color: var(--sand); text-shadow: 0 2px 0 #000; }
-  #dead { position: absolute; left: 50%; top: 40%; transform: translateX(-50%); font-size: 22px; color: var(--hp); text-shadow: 0 2px 0 #000; white-space: nowrap; }
-
+  #feed { position: absolute; top: 100px; left: max(14px, env(safe-area-inset-left)); font-size: 14px; max-width: 46%; }
+  #feed div { margin: 2px 0; } #feed .hl { color: #ffd23a; }
+  /* Реплика в эфире: лицо говорящего и текст, выезжает слева, как в меню */
+  #say { position: absolute; left: 50%; top: 26px; width: min(560px, calc(100% - 330px)); transform: translateX(-50%); display: flex; gap: 10px; align-items: center; }
+  #say img { width: 52px; height: 52px; flex: none; border-radius: 50%; border: 3px solid #ffd23a; box-shadow: 0 0 0 2px #120a05, 0 3px 6px rgba(0,0,0,.5); object-fit: cover; }
+  #say div { display: grid; gap: 1px; font-size: 16px; line-height: 1.25; }
+  #say b { font-weight: 400; font-size: 12px; color: #ffd23a; text-transform: uppercase; }
+  #say.in { animation: sayIn .45s cubic-bezier(.2,.9,.3,1.25) both; }
+  #say.out { animation: sayOut .3s ease-in both; }
+  @keyframes sayIn { from { transform: translateX(-50%) translateX(-100vw); } to { transform: translateX(-50%); } }
+  @keyframes sayOut { to { opacity: 0; transform: translateX(-50%) translateY(-10px); } }
+  #countdown { position: absolute; inset: 0; display: grid; place-items: center; font-size: 110px; color: #ffd23a; text-shadow: var(--ol), 0 6px 0 #5a2a10; }
+  #toast { position: absolute; left: 50%; top: 30%; transform: translateX(-50%); font-size: 30px; color: #ffd23a; white-space: nowrap; }
+  #dead { position: absolute; left: 50%; top: 42%; transform: translateX(-50%); font-size: 22px; color: #ff6a4a; white-space: nowrap; }
+  body.touch .gauges { top: calc(max(10px, env(safe-area-inset-top)) + 70px); bottom: auto; width: 200px; gap: 3px; }
+  body.touch .gauge { grid-template-columns: 62px 1fr; font-size: 11px; }
+  body.touch #feed { top: calc(max(10px, env(safe-area-inset-top)) + 160px); }
+  @media (max-width: 600px) {
+    .top { gap: 8px; } .place { font-size: 48px; } .place small { font-size: 17px; } .stats b { font-size: 16px; } .stats { font-size: 10px; }
+    #minimap { width: 96px; height: 96px; } .mute-wrap { top: calc(max(10px, env(safe-area-inset-top)) + 102px); }
+    .onair-tag { top: auto; bottom: calc(max(14px, env(safe-area-inset-bottom)) + 190px); font-size: 11px; }
+    #say { top: auto; bottom: calc(max(14px, env(safe-area-inset-bottom)) + 210px); width: calc(100% - 28px); }
+    #say div { font-size: 15px; }
+  }
   #overlay { position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; background: rgba(20, 12, 8, 0.6); padding: 16px; }
   #overlay > .card { flex: 0 1 auto; min-height: 0; }
   /* Жорж Блеск: кадр комикса, выезжает сбоку экрана */
@@ -232,33 +256,25 @@
   #touch .fire-pad .nitro.ready { border-color: var(--nitro); box-shadow: 0 0 12px var(--nitro); }
   #touch .fire-pad button.down { background: var(--rust); border-color: var(--sand); }
   #touch .fire-pad .nitro.down { background: var(--nitro); }
-  body.touch .bottom { top: calc(max(12px, env(safe-area-inset-top)) + 64px); bottom: auto; width: 190px; padding: 6px 10px; }
-  body.touch .row { margin: 2px 0; font-size: 11px; }
-  body.touch #feed { top: 210px; }
-  @media (max-width: 600px) {
-    .top { gap: 5px; left: 10px; right: 10px; }
-    .chip { padding: 4px 7px; font-size: 11px; }
-    .chip b { font-size: 17px; }
-    #minimap { width: 96px; height: 96px; }
-  }
   .card { touch-action: pan-y; }
   body.touch .keys { display: none; }
   /* Телефон в альбомной ориентации: экран низкий, интерфейс ужимаем, чтобы было видно трассу */
   @media (max-height: 500px) {
-    .top { top: max(6px, env(safe-area-inset-top)); left: max(8px, env(safe-area-inset-left)); right: max(8px, env(safe-area-inset-right)); gap: 4px; }
-    .chip { padding: 2px 6px; font-size: 9px; border-radius: 6px; }
-    .chip b { font-size: 14px; }
+    .top { top: max(6px, env(safe-area-inset-top)); left: max(10px, env(safe-area-inset-left)); right: max(10px, env(safe-area-inset-right)); gap: 8px; }
+    .place { font-size: 40px; } .place small { font-size: 14px; } .stats { font-size: 9px; padding-top: 2px; } .stats b { font-size: 13px; }
     #minimap { width: 76px; height: 76px; }
-    .bottom, body.touch .bottom { top: calc(max(6px, env(safe-area-inset-top)) + 40px); bottom: auto; left: max(8px, env(safe-area-inset-left)); width: 140px; padding: 4px 8px; border-radius: 8px; }
-    .row, body.touch .row { margin: 1px 0; font-size: 9px; gap: 5px; }
-    .row span { width: 44px; }
-    .bar { height: 6px; }
+    .gauges, body.touch .gauges { top: calc(max(6px, env(safe-area-inset-top)) + 50px); bottom: auto; left: max(10px, env(safe-area-inset-left)); width: 150px; gap: 2px; }
+    .gauge, body.touch .gauge { grid-template-columns: 50px 1fr; font-size: 9px; gap: 5px; }
+    .bar { height: 7px; border-width: 1.5px; }
     #weapon { font-size: 11px; }
-    .mute-wrap { top: calc(max(6px, env(safe-area-inset-top)) + 84px); right: max(8px, env(safe-area-inset-right)); display: flex; gap: 4px; }
-    #mute, #quit { margin: 0; font-size: 10px; padding: 3px 6px; }
-    #feed, body.touch #feed { top: 116px; left: max(8px, env(safe-area-inset-left)); font-size: 11px; }
-    #countdown { font-size: 56px; }
-    #toast { font-size: 18px; }
+    .mute-wrap { top: calc(max(6px, env(safe-area-inset-top)) + 82px); right: max(10px, env(safe-area-inset-right)); gap: 4px; }
+    #mute, #quit { font-size: 10px; padding: 2px 6px; }
+    #feed, body.touch #feed { top: 130px; left: max(10px, env(safe-area-inset-left)); font-size: 11px; }
+    .onair-tag { top: 4px; bottom: auto; font-size: 10px; }
+    #say { top: 22px; bottom: auto; width: min(420px, calc(100% - 360px)); }
+    #say img { width: 36px; height: 36px; border-width: 2px; } #say div { font-size: 12px; } #say b { font-size: 9px; }
+    #countdown { font-size: 60px; }
+    #toast { font-size: 19px; }
     #dead { font-size: 15px; }
     #touch .fire-pad { right: max(10px, env(safe-area-inset-right)); bottom: max(8px, env(safe-area-inset-bottom)); transform: scale(.78); transform-origin: right bottom; }
     #stick { left: calc(max(14px, env(safe-area-inset-left)) + 50px); top: calc(100% - max(10px, env(safe-area-inset-bottom)) - 50px); width: 100px; height: 100px; margin: -50px 0 0 -50px; }
@@ -290,12 +306,16 @@
 
 <div id="hud" hidden>
   <div class="top">
-    <div class="chip">Круг<b id="lap">1/3</b></div>
-    <div class="chip">Место<b id="place">1/4</b></div>
-    <div class="chip">Убийства<b id="kills">0</b></div>
-    <div class="chip">Время<b id="time">0:00.0</b></div>
-    <canvas id="minimap" width="132" height="132"></canvas>
+    <div class="place" id="place-box"><span id="place">1</span><small id="place-n">/4</small></div>
+    <div class="stats">
+      <div>КРУГ<b id="lap">1/3</b></div>
+      <div>ВРЕМЯ<b id="time">0:00.0</b></div>
+      <div>УБИЙСТВА<b id="kills">0</b></div>
+    </div>
+    <canvas id="minimap" width="264" height="264"></canvas>
   </div>
+  <div class="onair-tag">● ПРЯМОЙ ЭФИР <span>«ГОРЯЧИЙ ЭФИР»</span></div>
+  <div id="say" hidden><img id="say-face" alt=""><div><b id="say-who"></b><span id="say-line"></span></div></div>
   <div class="mute-wrap">
     <button id="mute" type="button">Звук вкл</button>
     <button id="quit" type="button">Выйти</button>
@@ -304,11 +324,11 @@
   <div id="countdown" hidden></div>
   <div id="toast" hidden></div>
   <div id="dead" hidden></div>
-  <div class="bottom">
-    <div class="row"><span>Броня</span><div class="bar"><i id="hp"></i></div></div>
-    <div class="row"><span>Перегрев</span><div class="bar"><i id="heat"></i></div></div>
-    <div class="row"><span>Нитро</span><div class="bar"><i id="nitro"></i></div></div>
-    <div class="row"><span>Оружие</span><b id="weapon">—</b></div>
+  <div class="gauges">
+    <div class="gauge"><span>БРОНЯ</span><div class="bar"><i id="hp"></i></div></div>
+    <div class="gauge"><span>ПЕРЕГРЕВ</span><div class="bar"><i id="heat"></i></div></div>
+    <div class="gauge"><span>НИТРО</span><div class="bar"><i id="nitro"></i></div></div>
+    <div class="gauge"><span>ОРУЖИЕ</span><b id="weapon">—</b></div>
   </div>
 </div>
 
