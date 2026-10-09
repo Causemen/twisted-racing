@@ -23,6 +23,10 @@ export interface CarSpec {
 
 const C = CONFIG.car;
 
+function wrapAngle(a: number) {
+  return Math.atan2(Math.sin(a), Math.cos(a));
+}
+
 export class Car {
   readonly name: string;
   readonly isPlayer: boolean;
@@ -65,6 +69,8 @@ export class Car {
   speedMult: number;
   baseSpeedMult: number;
   offroad = false;
+  drifting = false;
+  steerState = 0;
 
   input: CarInput = { throttle: 0, steer: 0, fire: false, alt: false, nitro: false };
 
@@ -115,7 +121,12 @@ export class Car {
       }
     }
 
-    const { throttle, steer } = this.input;
+    const { throttle } = this.input;
+    // Руль доходит до упора не мгновенно: машина ощущается тяжелее
+    const target = this.input.steer;
+    this.steerState += (target - this.steerState) * Math.min(1, C.steerResponse * dt);
+    if (Math.abs(target) < 0.01 && Math.abs(this.steerState) < 0.02) this.steerState = 0;
+    const steer = this.steerState;
     const f = this.forward;
     const r = new THREE.Vector3(f.z, 0, -f.x);
 
@@ -125,29 +136,53 @@ export class Car {
       const boosting = this.nitroActive > 0;
       const maxS = C.maxSpeed * this.speedMult * (boosting ? C.nitroMult : 1) * (this.offroad ? C.offroadSpeed : 1);
 
-      if (boosting) {
-        vf += C.accel * 1.8 * dt;
-      } else if (throttle > 0) {
-        if (vf < maxS) vf += C.accel * throttle * dt;
-      } else if (throttle < 0) {
-        vf -= (vf > 0 ? C.brake : C.accel * 0.6) * -throttle * dt;
+      // Дрифт: зажать тормоз с поворотом на скорости, держится пока руль повёрнут
+      const spd = Math.hypot(this.vel.x, this.vel.z);
+      if (!this.drifting && throttle < 0 && Math.abs(steer) > 0.3 && vf > C.driftMinSpeed) this.drifting = true;
+      else if (this.drifting && (Math.abs(this.input.steer) < 0.2 || spd < C.driftMinSpeed * 0.6 || this.offroad || boosting)) this.drifting = false;
+
+      if (this.drifting) {
+        // Управляемый занос: скорость почти сохраняется, её направление догоняет нос машины
+        let v = spd - (throttle < 0 ? C.driftBrake : 0) * dt;
+        if (throttle > 0 && v < maxS) v += C.accel * 0.5 * throttle * dt;
+        v *= Math.exp(-C.drag * dt);
+        const vAng = Math.atan2(this.vel.x, this.vel.z);
+        const lag = wrapAngle(this.heading - vAng);
+        const newAng = vAng + Math.sign(lag) * Math.min(Math.abs(lag), C.driftGrip * dt);
+        this.vel.set(Math.sin(newAng) * v, 0, Math.cos(newAng) * v);
+        this.nitro = Math.min(1, this.nitro + C.driftNitro * dt);
+
+        const speedFactor = Math.min(1, v / maxS);
+        this.heading -= steer * C.turnRate * this.turnMult * (1 - C.highSpeedSteer * speedFactor) * C.driftTurn * dt;
+        const slip = wrapAngle(this.heading - newAng);
+        if (Math.abs(slip) > C.driftMaxSlip) this.heading = newAng + Math.sign(slip) * C.driftMaxSlip;
+      } else {
+        if (boosting) {
+          vf += C.accel * 1.8 * dt;
+        } else if (throttle > 0) {
+          if (vf < maxS) vf += C.accel * throttle * dt;
+        } else if (throttle < 0) {
+          vf -= (vf > 0 ? C.brake : C.accel * 0.6) * -throttle * dt;
+        }
+
+        vf *= Math.exp(-((throttle === 0 && !boosting ? C.coastDrag : C.drag) + (this.offroad ? C.offroadDrag : 0)) * dt);
+        if (vf > maxS) vf += (maxS - vf) * Math.min(1, 3 * dt);
+        if (vf < -C.reverseMax) vf = -C.reverseMax;
+
+        const speedFactor = Math.min(1, Math.abs(vf) / maxS);
+        const grip = Math.max(1.2, C.grip - Math.abs(steer) * speedFactor * C.driftGripLoss);
+        vl *= Math.exp(-grip * dt);
+
+        this.vel.copy(f).multiplyScalar(vf).addScaledVector(r, vl);
+
+        // На скорости руль мягче, на малой резче
+        const turnScale = THREE.MathUtils.clamp(vf / 4, -1, 1) * (1 - C.highSpeedSteer * speedFactor);
+        this.heading -= steer * C.turnRate * this.turnMult * turnScale * dt;
       }
-
-      vf *= Math.exp(-((throttle === 0 && !boosting ? C.coastDrag : C.drag) + (this.offroad ? C.offroadDrag : 0)) * dt);
-      if (vf > maxS) vf += (maxS - vf) * Math.min(1, 3 * dt);
-      if (vf < -C.reverseMax) vf = -C.reverseMax;
-
-      const speedFactor = Math.min(1, Math.abs(vf) / maxS);
-      const grip = Math.max(1.2, C.grip - Math.abs(steer) * speedFactor * C.driftGripLoss);
-      vl *= Math.exp(-grip * dt);
-
-      this.vel.copy(f).multiplyScalar(vf).addScaledVector(r, vl);
-
-      const turnScale = THREE.MathUtils.clamp(vf / 4, -1, 1);
-      this.heading -= steer * C.turnRate * this.turnMult * turnScale * dt;
     } else {
       this.vy -= CONFIG.gravity * dt;
       this.vel.multiplyScalar(Math.exp(-0.1 * dt));
+      this.drifting = false;
       this.heading -= steer * C.turnRate * 0.25 * dt;
     }
 
