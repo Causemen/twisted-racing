@@ -30,6 +30,14 @@ const KEYS_HTML = `<div class="keys">
   <div><kbd>Shift</kbd> — ракеты или мины, <kbd>E</kbd> — нитро, <kbd>M</kbd> — звук, <kbd>Esc</kbd> — выйти из гонки</div>
 </div>`;
 
+const RESULT_LINES = [
+  'Победитель! Зрители в восторге, спонсоры в слезах, механики в дыму.',
+  'Серебро! Почти золото, но почти не считается.',
+  'Бронза. Зато цела машина. Ну, часть машины.',
+  'Четвёртое место! Для рейтинга шоу ты просто находка.',
+  'Хвост колонны. Хвосты, между прочим, тоже нужны.',
+];
+
 const MENU_LINES = [
   'Добрый вечер, пустошь! С вами Жорж Блеск и шесть банд, которые очень хотят вас переехать.',
   'Сегодня в эфире: гонки, взрывы и розыгрыш бесплатного гроба!',
@@ -89,7 +97,7 @@ export class Ui {
       <h3 class="faces-title">Главари банд</h3>
       <div class="faces">${faces}</div>
       <div class="ticker" aria-hidden="true"><div>${tick}<i>✦</i>${tick}<i>✦</i></div></div>
-      <p class="ver">Версия 0.8</p>`);
+      <p class="ver">Версия 0.9</p>`);
     this.on('[data-act="campaign"]', () => (this.state ? this.map() : this.gangSelect()));
     this.on('[data-act="quick"]', () => this.quickSetup());
     this.on('[data-act="help"]', () => this.help());
@@ -214,7 +222,7 @@ export class Ui {
     const income = this.state ? C.quickRaceIncome(this.state) : 0;
     const news = this.pendingNews.splice(0);
     this.show(`
-      <h2>Результаты</h2>
+      ${this.credits(r)}
       ${this.table(r)}
       ${income ? `<p class="muted">Вышки принесли ${income} л горючки.</p>` : ''}
       ${news.map((n) => this.quote(C.HOST, n)).join('')}
@@ -228,9 +236,19 @@ export class Ui {
     else this.quickSetup();
   }
 
+  /** Заставка итогов: номер места крупно, как плашка в конце эфира. */
+  private credits(r: RaceResult) {
+    const line = RESULT_LINES[Math.min(r.place, RESULT_LINES.length) - 1] ?? RESULT_LINES[RESULT_LINES.length - 1];
+    return `<div class="credits${r.place === 1 ? ' win' : ''}">
+      <small>● «Горячий эфир» · итоги заезда</small>
+      <div class="cr-place"><b>${r.place}</b><span>место</span></div>
+      <p class="cr-line"><b>Жорж Блеск:</b> ${esc(line)}</p>
+    </div>`;
+  }
+
   private table(r: RaceResult) {
     const rows = r.standings
-      .map((c, i) => `<tr class="${c.isPlayer ? 'me' : ''}"><td>${i + 1}</td><td><i class="dot" style="background:${hex(c.color)}"></i>${esc(c.name)}</td><td>${c.finished ? fmtTime(c.time) : '—'}</td><td>${c.kills}</td></tr>`)
+      .map((c, i) => `<tr class="${c.isPlayer ? 'me' : ''}" style="--i:${i}"><td>${i + 1}</td><td><i class="dot" style="background:${hex(c.color)}"></i>${esc(c.name)}</td><td>${c.finished ? fmtTime(c.time) : '—'}</td><td>${c.kills}</td></tr>`)
       .join('');
     return `<div class="tbl"><table><thead><tr><th>#</th><th>Гонщик</th><th>Время</th><th>Убийства</th></tr></thead><tbody>${rows}</tbody></table></div>`;
   }
