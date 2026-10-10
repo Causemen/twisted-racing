@@ -95,13 +95,32 @@ export class Hud {
     });
   }
 
+  /** Вспышка по краям экрана: красная при попадании по тебе, золотая при убийстве. */
+  private flash(kind: 'hit' | 'kill', power: number) {
+    const el = $('fx');
+    el.className = '';
+    el.style.setProperty('--p', String(power));
+    void el.offsetWidth;
+    el.className = kind;
+  }
+
   private lastHp = -1;
   private lastKills = 0;
 
   update(player: Car, time: number) {
     // Отдача на телефоне: короткая вибрация при попадании по тебе и длиннее при убийстве
-    if (this.lastHp >= 0 && player.hp < this.lastHp - 0.5) buzz(player.alive ? 25 : 120);
-    if (player.kills > this.lastKills) buzz([30, 40, 60]);
+    if (this.lastHp >= 0 && player.hp < this.lastHp - 0.5) {
+      buzz(player.alive ? 25 : 120);
+      this.flash('hit', Math.min(1, (this.lastHp - player.hp) / 25 + 0.35));
+    }
+    if (player.kills > this.lastKills) {
+      buzz([30, 40, 60]);
+      this.flash('kill', 1);
+      const k = $('kills');
+      k.classList.remove('bump');
+      void k.offsetWidth;
+      k.classList.add('bump');
+    }
     this.lastHp = player.hp;
     this.lastKills = player.kills;
     const order = this.standings();
