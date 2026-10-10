@@ -30,6 +30,16 @@ const KEYS_HTML = `<div class="keys">
   <div><kbd>Shift</kbd> — ракеты или мины, <kbd>E</kbd> — нитро, <kbd>M</kbd> — звук, <kbd>Esc</kbd> — выйти из гонки</div>
 </div>`;
 
+/** Где на картинке art/map.webp стоит вышка каждой банды, в процентах. */
+const TOWER_POS: Record<C.GangId, [number, number]> = {
+  rust: [21, 35],
+  salt: [50.5, 28],
+  fire: [79.5, 33],
+  rattle: [22.5, 70],
+  tnt: [49.5, 84],
+  haul: [79.5, 71],
+};
+
 const RESULT_LINES = [
   'Победитель! Зрители в восторге, спонсоры в слезах, механики в дыму.',
   'Серебро! Почти золото, но почти не считается.',
@@ -97,7 +107,7 @@ export class Ui {
       <h3 class="faces-title">Главари банд</h3>
       <div class="faces">${faces}</div>
       <div class="ticker" aria-hidden="true"><div>${tick}<i>✦</i>${tick}<i>✦</i></div></div>
-      <p class="ver">Версия 0.9</p>`);
+      <p class="ver">Версия 1.0</p>`);
     this.on('[data-act="campaign"]', () => (this.state ? this.map() : this.gangSelect()));
     this.on('[data-act="quick"]', () => this.quickSetup());
     this.on('[data-act="help"]', () => this.help());
@@ -158,6 +168,7 @@ export class Ui {
   }
 
   private hostTimer = 0;
+  private sel: C.GangId | null = null;
   private swapTimer = 0;
 
   private help() {
@@ -295,7 +306,10 @@ export class Ui {
     const passive = C.collectPassive(s);
     C.save(s);
     const mine = C.gang(s.gang);
-    const terr = (Object.keys(s.territories) as C.GangId[]).map((id) => {
+    const ids = Object.keys(s.territories) as C.GangId[];
+    if (!this.sel || !ids.includes(this.sel)) this.sel = s.raid && ids.includes(s.raid) ? s.raid : ids.find((id) => s.territories[id]!.tower !== 'active') ?? ids[0];
+    const sel = this.sel;
+    const terr = ids.map((id) => {
       const g = C.gang(id);
       const t = s.territories[id]!;
       const kind = C.nextRaceKind(s, id);
@@ -303,10 +317,19 @@ export class Ui {
       const status =
         s.raid === id ? '<span class="tag warn">Налёт!</span>' : t.tower === 'active' ? '<span class="tag ok">Вышка твоя</span>' : t.tower === 'idle' ? '<span class="tag bad">Простой</span>' : '';
       const label = { territory: `Гонка ${t.progress + 1}`, boss: `Босс: ${g.leader}`, farm: 'Гонка за горючку', defense: s.raid === id ? 'Гонка-оборона' : 'Отбить вышку', final: '' }[kind];
-      return `<div class="terr" style="--car:${g.color}"><img class="tface" src="art/face-${g.id}.webp" alt="">
+      return `<div class="terr" data-t="${id}" ${id === sel ? '' : 'hidden'} style="--car:${g.color}"><img class="tface" src="art/face-${g.id}.webp" alt="">
         <div><b>${g.name}</b> ${status}<small>${trackLabel(g.track)} · вышка «${g.tower}»</small><div class="pips">${pips}</div></div>
         <button type="button" class="${kind === 'defense' || kind === 'boss' ? 'go sm' : 'btn2 sm'}" data-race="${id}">${label}</button></div>`;
     });
+    const pins = C.GANGS.map((g) => {
+      const at = TOWER_POS[g.id];
+      const home = g.id === s.gang;
+      const t = s.territories[g.id];
+      const st = home ? 'mine' : s.raid === g.id ? 'raid' : t!.tower === 'active' ? 'mine' : t!.tower === 'idle' ? 'idle' : 'enemy';
+      const cap = home ? 'Дом' : g.tower;
+      return `<${home ? 'div' : 'button type="button"'} class="tw ${st}${g.id === sel ? ' on' : ''}" data-pin="${home ? '' : g.id}" style="left:${at[0]}%;top:${at[1]}%;--car:${g.color}">
+        <img src="art/tower-${st}.webp" alt=""><span>${esc(cap)}</span></${home ? 'div' : 'button'}>`;
+    }).join('');
     const fin = C.finalUnlocked(s)
       ? `<div class="terr final" style="--car:${mine.color}"><img class="tface" src="art/face-${mine.id}.webp" alt=""><div><b>Вызов наставнику</b><small>${mine.leader}, ${trackLabel(mine.track)}, один на один</small></div>
          <button type="button" class="go sm" data-final="1">${s.finalWon ? 'Ещё раз' : 'Бросить вызов'}</button></div>`
@@ -314,6 +337,7 @@ export class Ui {
     const raidBanner = s.raid ? this.quote(C.HOST, C.HOST_LINES.raid(C.gang(s.raid).name, C.gang(s.raid).tower) + ' Если поедешь в другую гонку, вышка встанет.') : '';
     this.show(`
       <div class="head"><button type="button" class="back" data-act="menu">← Меню</button><h2>Пустошь</h2></div>
+      <div class="wmap"><img src="art/map.webp" alt="Карта пустоши">${pins}</div>
       <div class="bank"><span>Горючка <b>${s.fuel} л</b></span><span>Вышки <b>${C.towersOwned(s)}/5</b></span><span><b style="color:${mine.color}">${mine.name}</b></span></div>
       ${passive ? `<p class="muted small">Пока тебя не было, вышки накачали ${passive} л.</p>` : ''}
       ${s.finalWon ? this.quote(mine.leader, `Ты теперь главарь «${mine.name}». Кстати, тебе письмо из Шпиля. Пахнет неприятностями.`) : ''}
@@ -331,6 +355,12 @@ export class Ui {
         b.dataset.sure = '1';
         b.textContent = 'Точно стереть прогресс?';
       }
+    });
+    this.on('[data-pin]', (b) => {
+      const id = b.dataset.pin as C.GangId;
+      this.sel = id;
+      $('screen').querySelectorAll<HTMLElement>('.tw').forEach((e) => e.classList.toggle('on', e.dataset.pin === id));
+      $('screen').querySelectorAll<HTMLElement>('.terr[data-t]').forEach((e) => (e.hidden = e.dataset.t !== id));
     });
     this.on('[data-race]', (b) => {
       const id = b.dataset.race as C.GangId;
